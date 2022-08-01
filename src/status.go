@@ -1,61 +1,73 @@
 package main
 
-import "github.com/PassTheMayo/mcstatus/v4"
+import (
+	"encoding/base64"
+	"fmt"
+	"strings"
 
-type StatusResponse[T JavaStatus | BedrockStatus] struct {
+	"github.com/PassTheMayo/mcstatus/v4"
+)
+
+type StatusOffline struct {
 	Online      bool   `json:"online"`
 	Host        string `json:"host"`
 	Port        uint16 `json:"port"`
 	EULABlocked bool   `json:"eula_blocked"`
-	Response    *T     `json:"response"`
 }
 
-type JavaStatus struct {
-	Version   *Version   `json:"version"`
-	Players   Players    `json:"players"`
-	MOTD      MOTD       `json:"motd"`
-	Favicon   *string    `json:"favicon"`
-	ModInfo   *ModInfo   `json:"mod_info"`
-	SRVRecord *SRVRecord `json:"srv_record"`
+type JavaStatusResponse struct {
+	Online      bool         `json:"online"`
+	Host        string       `json:"host"`
+	Port        uint16       `json:"port"`
+	EULABlocked bool         `json:"eula_blocked"`
+	Version     *JavaVersion `json:"version"`
+	Players     JavaPlayers  `json:"players"`
+	MOTD        MOTD         `json:"motd"`
+	Icon        *string      `json:"icon"`
+	Mods        []Mod        `json:"mods"`
 }
 
-type Players struct {
-	Online int            `json:"online"`
-	Max    int            `json:"max"`
-	Sample []SamplePlayer `json:"sample"`
+type BedrockStatusResponse struct {
+	Online      bool            `json:"online"`
+	Host        string          `json:"host"`
+	Port        uint16          `json:"port"`
+	EULABlocked bool            `json:"eula_blocked"`
+	Version     *BedrockVersion `json:"version"`
+	Players     *BedrockPlayers `json:"players"`
+	MOTD        *MOTD           `json:"motd"`
+	Gamemode    *string         `json:"gamemode"`
+	ServerID    *string         `json:"server_id"`
+	Edition     *string         `json:"edition"`
 }
 
-type SamplePlayer struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Clean string `json:"clean"`
-	HTML  string `json:"html"`
+type JavaVersion struct {
+	NameRaw   string `json:"name_raw"`
+	NameClean string `json:"name_clean"`
+	NameHTML  string `json:"name_html"`
+	Protocol  int    `json:"protocol"`
 }
 
-type ModInfo struct {
-	Type string `json:"type"`
-	Mods []Mod  `json:"mods"`
+type BedrockVersion struct {
+	Name     *string `json:"name"`
+	Protocol *int64  `json:"protocol"`
 }
 
-type Mod struct {
-	ID      string `json:"id"`
-	Version string `json:"version"`
+type JavaPlayers struct {
+	Online int      `json:"online"`
+	Max    int      `json:"max"`
+	List   []Player `json:"list"`
 }
 
-type BedrockStatus struct {
-	ServerGUID      int64      `json:"server_guid"`
-	Edition         *string    `json:"edition"`
-	MOTD            *MOTD      `json:"motd"`
-	ProtocolVersion *int64     `json:"protocol_version"`
-	Version         *string    `json:"version"`
-	OnlinePlayers   *int64     `json:"online_players"`
-	MaxPlayers      *int64     `json:"max_players"`
-	ServerID        *string    `json:"server_id"`
-	Gamemode        *string    `json:"gamemode"`
-	GamemodeID      *int64     `json:"gamemode_id"`
-	PortIPv4        *uint16    `json:"port_ipv4"`
-	PortIPv6        *uint16    `json:"port_ipv6"`
-	SRVRecord       *SRVRecord `json:"srv_record"`
+type BedrockPlayers struct {
+	Online *int64 `json:"online"`
+	Max    *int64 `json:"max"`
+}
+
+type Player struct {
+	UUID      string `json:"uuid"`
+	NameRaw   string `json:"name_raw"`
+	NameClean string `json:"name_clean"`
+	NameHTML  string `json:"name_html"`
 }
 
 type MOTD struct {
@@ -64,188 +76,274 @@ type MOTD struct {
 	HTML  string `json:"html"`
 }
 
-type Version struct {
-	Name     string `json:"name"`
-	Protocol int    `json:"protocol"`
+type Mod struct {
+	Name    string `json:"name"`
+	Version string `json:"version"`
 }
 
-type SRVRecord struct {
-	Host string `json:"host"`
-	Port uint16 `json:"port"`
+func GetJavaStatus(host string, port uint16) (interface{}, error) {
+	cacheKey := fmt.Sprintf("java:%s-%d", host, port)
+
+	if config.Cache.Enable {
+		exists, err := r.Exists(cacheKey)
+
+		if err != nil {
+			return nil, err
+		}
+
+		if exists {
+			return r.GetString(cacheKey)
+		}
+	}
+
+	response := FetchJavaStatus(host, port)
+
+	if config.Cache.Enable {
+		if err := r.SetJSON(cacheKey, response, config.Cache.JavaCacheDuration); err != nil {
+			return nil, err
+		}
+	}
+
+	return response, nil
 }
 
-func GetJavaStatus(host string, port uint16) (resp StatusResponse[JavaStatus]) {
+func GetBedrockStatus(host string, port uint16) (interface{}, error) {
+	cacheKey := fmt.Sprintf("bedrock:%s-%d", host, port)
+
+	if config.Cache.Enable {
+		exists, err := r.Exists(cacheKey)
+
+		if err != nil {
+			return nil, err
+		}
+
+		if exists {
+			return r.GetString(cacheKey)
+		}
+	}
+
+	response := FetchBedrockStatus(host, port)
+
+	if config.Cache.Enable {
+		if err := r.SetJSON(cacheKey, response, config.Cache.BedrockCacheDuration); err != nil {
+			return nil, err
+		}
+	}
+
+	return response, nil
+}
+
+func GetServerIcon(host string, port uint16) ([]byte, error) {
+	cacheKey := fmt.Sprintf("icon:%s-%d", host, port)
+
+	if config.Cache.Enable {
+		exists, err := r.Exists(cacheKey)
+
+		if err != nil {
+			return nil, err
+		}
+
+		if exists {
+			return r.GetBytes(cacheKey)
+		}
+	}
+
+	icon := defaultIconBytes
+
+	status, err := mcstatus.Status(host, port)
+
+	if err == nil && status.Favicon != nil && strings.HasPrefix(*status.Favicon, "data:image/png;base64,") {
+		data, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(*status.Favicon, "data:image/png;base64,"))
+
+		if err != nil {
+			return nil, err
+		}
+
+		icon = data
+	}
+
+	if config.Cache.Enable {
+		if err := r.Set(cacheKey, icon, config.Cache.IconCacheDuration); err != nil {
+			return nil, err
+		}
+	}
+
+	return icon, nil
+}
+
+func FetchJavaStatus(host string, port uint16) interface{} {
 	status, err := mcstatus.Status(host, port)
 
 	if err != nil {
 		statusLegacy, err := mcstatus.StatusLegacy(host, port)
 
 		if err != nil {
-			resp = StatusResponse[JavaStatus]{
+			return StatusOffline{
 				Online:      false,
 				Host:        host,
 				Port:        port,
 				EULABlocked: IsBlockedAddress(host),
-				Response:    nil,
 			}
-
-			return
 		}
 
-		resp = StatusResponse[JavaStatus]{
+		response := JavaStatusResponse{
 			Online:      true,
 			Host:        host,
 			Port:        port,
 			EULABlocked: IsBlockedAddress(host),
-			Response: &JavaStatus{
-				Version: nil,
-				Players: Players{
-					Online: statusLegacy.Players.Online,
-					Max:    statusLegacy.Players.Max,
-					Sample: make([]SamplePlayer, 0),
-				},
-				MOTD: MOTD{
-					Raw:   statusLegacy.MOTD.Raw,
-					Clean: statusLegacy.MOTD.Clean,
-					HTML:  statusLegacy.MOTD.HTML,
-				},
-				Favicon:   nil,
-				ModInfo:   nil,
-				SRVRecord: nil,
+			Version:     nil,
+			Players: JavaPlayers{
+				Online: statusLegacy.Players.Online,
+				Max:    statusLegacy.Players.Max,
+				List:   make([]Player, 0),
 			},
+			MOTD: MOTD{
+				Raw:   statusLegacy.MOTD.Raw,
+				Clean: statusLegacy.MOTD.Clean,
+				HTML:  statusLegacy.MOTD.HTML,
+			},
+			Icon: nil,
+			Mods: make([]Mod, 0),
 		}
 
 		if statusLegacy.Version != nil {
-			resp.Response.Version = &Version{
-				Name:     statusLegacy.Version.Name,
-				Protocol: statusLegacy.Version.Protocol,
+			response.Version = &JavaVersion{
+				NameRaw:   statusLegacy.Version.Name,
+				NameClean: statusLegacy.Version.Clean,
+				NameHTML:  statusLegacy.Version.HTML,
+				Protocol:  statusLegacy.Version.Protocol,
 			}
 		}
 
-		if statusLegacy.SRVResult != nil {
-			resp.Response.SRVRecord = &SRVRecord{
-				Host: statusLegacy.SRVResult.Host,
-				Port: statusLegacy.SRVResult.Port,
-			}
+		return response
+	}
+
+	playerList := make([]Player, 0)
+
+	if status.Players.Sample != nil {
+		for _, player := range status.Players.Sample {
+			playerList = append(playerList, Player{
+				UUID:      player.ID,
+				NameRaw:   player.Name,
+				NameClean: player.Clean,
+				NameHTML:  player.HTML,
+			})
 		}
-
-		return
 	}
 
-	samplePlayers := make([]SamplePlayer, 0)
+	modList := make([]Mod, 0)
 
-	for _, player := range status.Players.Sample {
-		samplePlayers = append(samplePlayers, SamplePlayer{
-			ID:    player.ID,
-			Name:  player.Name,
-			Clean: player.Clean,
-			HTML:  player.HTML,
-		})
+	if status.ModInfo != nil {
+		for _, mod := range status.ModInfo.Mods {
+			modList = append(modList, Mod{
+				Name:    mod.ID,
+				Version: mod.Version,
+			})
+		}
 	}
 
-	resp = StatusResponse[JavaStatus]{
+	return JavaStatusResponse{
 		Online:      true,
 		Host:        host,
 		Port:        port,
 		EULABlocked: IsBlockedAddress(host),
-		Response: &JavaStatus{
-			Version: &Version{
-				Name:     status.Version.Name,
-				Protocol: status.Version.Protocol,
-			},
-			Players: Players{
-				Online: status.Players.Online,
-				Max:    status.Players.Max,
-				Sample: samplePlayers,
-			},
-			MOTD: MOTD{
-				Raw:   status.MOTD.Raw,
-				Clean: status.MOTD.Clean,
-				HTML:  status.MOTD.HTML,
-			},
-			Favicon:   status.Favicon,
-			ModInfo:   nil,
-			SRVRecord: nil,
+		Version: &JavaVersion{
+			NameRaw:   status.Version.Name,
+			NameClean: status.Version.Clean,
+			NameHTML:  status.Version.HTML,
+			Protocol:  status.Version.Protocol,
 		},
+		Players: JavaPlayers{
+			Online: status.Players.Online,
+			Max:    status.Players.Max,
+			List:   playerList,
+		},
+		MOTD: MOTD{
+			Raw:   status.MOTD.Raw,
+			Clean: status.MOTD.Clean,
+			HTML:  status.MOTD.HTML,
+		},
+		Icon: status.Favicon,
+		Mods: modList,
 	}
-
-	if status.ModInfo != nil {
-		mods := make([]Mod, 0)
-
-		for _, mod := range status.ModInfo.Mods {
-			mods = append(mods, Mod{
-				ID:      mod.ID,
-				Version: mod.Version,
-			})
-		}
-
-		resp.Response.ModInfo = &ModInfo{
-			Type: status.ModInfo.Type,
-			Mods: mods,
-		}
-	}
-
-	if status.SRVResult != nil {
-		resp.Response.SRVRecord = &SRVRecord{
-			Host: status.SRVResult.Host,
-			Port: status.SRVResult.Port,
-		}
-	}
-
-	return
 }
 
-func GetBedrockStatus(host string, port uint16) (resp StatusResponse[BedrockStatus]) {
+func FetchBedrockStatus(host string, port uint16) interface{} {
 	status, err := mcstatus.StatusBedrock(host, port)
 
 	if err != nil {
-		resp = StatusResponse[BedrockStatus]{
+		return StatusOffline{
 			Online:      false,
 			Host:        host,
 			Port:        port,
 			EULABlocked: IsBlockedAddress(host),
-			Response:    nil,
 		}
-
-		return
 	}
 
-	resp = StatusResponse[BedrockStatus]{
+	response := BedrockStatusResponse{
 		Online:      true,
 		Host:        host,
 		Port:        port,
 		EULABlocked: IsBlockedAddress(host),
-		Response: &BedrockStatus{
-			ServerGUID:      status.ServerGUID,
-			Edition:         status.Edition,
-			MOTD:            nil,
-			ProtocolVersion: status.ProtocolVersion,
-			Version:         status.Version,
-			OnlinePlayers:   status.OnlinePlayers,
-			MaxPlayers:      status.MaxPlayers,
-			ServerID:        status.ServerID,
-			Gamemode:        status.Gamemode,
-			GamemodeID:      status.GamemodeID,
-			PortIPv4:        status.PortIPv4,
-			PortIPv6:        status.PortIPv6,
-			SRVRecord:       nil,
-		},
+		Version:     nil,
+		Players:     nil,
+		MOTD:        nil,
+		Gamemode:    status.Gamemode,
+		ServerID:    status.ServerID,
+		Edition:     status.Edition,
+	}
+
+	if status.Version != nil {
+		if response.Version == nil {
+			response.Version = &BedrockVersion{
+				Name:     nil,
+				Protocol: nil,
+			}
+		}
+
+		response.Version.Name = status.Version
+	}
+
+	if status.ProtocolVersion != nil {
+		if response.Version == nil {
+			response.Version = &BedrockVersion{
+				Name:     nil,
+				Protocol: nil,
+			}
+		}
+
+		response.Version.Protocol = status.ProtocolVersion
+	}
+
+	if status.OnlinePlayers != nil {
+		if response.Players == nil {
+			response.Players = &BedrockPlayers{
+				Online: nil,
+				Max:    nil,
+			}
+		}
+
+		response.Players.Online = status.OnlinePlayers
+	}
+
+	if status.MaxPlayers != nil {
+		if response.Players == nil {
+			response.Players = &BedrockPlayers{
+				Online: nil,
+				Max:    nil,
+			}
+		}
+
+		response.Players.Max = status.MaxPlayers
 	}
 
 	if status.MOTD != nil {
-		resp.Response.MOTD = &MOTD{
+		response.MOTD = &MOTD{
 			Raw:   status.MOTD.Raw,
 			Clean: status.MOTD.Clean,
 			HTML:  status.MOTD.HTML,
 		}
 	}
 
-	if status.SRVResult != nil {
-		resp.Response.SRVRecord = &SRVRecord{
-			Host: status.SRVResult.Host,
-			Port: status.SRVResult.Port,
-		}
-	}
-
-	return
+	return response
 }

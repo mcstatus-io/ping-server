@@ -4,21 +4,23 @@ import (
 	"io/ioutil"
 	"time"
 
-	"github.com/go-yaml/yaml"
+	"gopkg.in/yaml.v3"
 )
 
-type Configuration struct {
-	Environment     string        `yaml:"environment"`
-	Host            string        `yaml:"host"`
-	Port            uint16        `yaml:"port"`
-	Redis           string        `yaml:"redis"`
-	CacheEnable     bool          `yaml:"cache_enable"`
-	StatusCacheTTL  time.Duration `yaml:"status_cache_ttl"`
-	FaviconCacheTTL time.Duration `yaml:"favicon_cache_ttl"`
+type Config struct {
+	Host  string `yaml:"host"`
+	Port  uint16 `yaml:"port"`
+	Redis string `yaml:"redis"`
+	Cache struct {
+		Enable               bool          `yaml:"enable"`
+		JavaCacheDuration    time.Duration `yaml:"java_cache_duration"`
+		BedrockCacheDuration time.Duration `yaml:"bedrock_cache_duration"`
+		IconCacheDuration    time.Duration `yaml:"icon_cache_duration"`
+	} `yaml:"cache"`
 }
 
-func (c *Configuration) ReadFile(path string) error {
-	data, err := ioutil.ReadFile(path)
+func (c *Config) ReadFile(file string) error {
+	data, err := ioutil.ReadFile(file)
 
 	if err != nil {
 		return err

@@ -2,14 +2,14 @@ package main
 
 import (
 	"context"
-	"errors"
+	"encoding/json"
 	"time"
 
 	"github.com/go-redis/redis/v8"
 )
 
 type Redis struct {
-	Conn *redis.Client
+	Client *redis.Client
 }
 
 func (r *Redis) Connect(uri string) error {
@@ -19,37 +19,13 @@ func (r *Redis) Connect(uri string) error {
 		return err
 	}
 
-	conn := redis.NewClient(opts)
+	r.Client = redis.NewClient(opts)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 
 	defer cancel()
 
-	if err = conn.Ping(ctx).Err(); err != nil {
-		return err
-	}
-
-	r.Conn = conn
-
-	return nil
-}
-
-func (r *Redis) TTL(key string) (time.Duration, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-
-	defer cancel()
-
-	val, err := r.Conn.TTL(ctx, key).Result()
-
-	if err != nil {
-		if errors.Is(err, redis.Nil) {
-			return 0, nil
-		}
-
-		return 0, err
-	}
-
-	return val, nil
+	return r.Client.Ping(ctx).Err()
 }
 
 func (r *Redis) Exists(key string) (bool, error) {
@@ -57,27 +33,29 @@ func (r *Redis) Exists(key string) (bool, error) {
 
 	defer cancel()
 
-	val, err := r.Conn.Exists(ctx, key).Result()
+	res := r.Client.Exists(ctx, key)
+
+	if err := res.Err(); err != nil {
+		return false, err
+	}
+
+	val, err := res.Result()
 
 	return val == 1, err
 }
 
-func (r *Redis) Get(key string) (string, error) {
+func (r *Redis) GetString(key string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 
 	defer cancel()
 
-	val, err := r.Conn.Get(ctx, key).Result()
+	res := r.Client.Get(ctx, key)
 
-	if err != nil {
-		if errors.Is(err, redis.Nil) {
-			return "", nil
-		}
-
+	if err := res.Err(); err != nil {
 		return "", err
 	}
 
-	return val, nil
+	return res.Result()
 }
 
 func (r *Redis) GetBytes(key string) ([]byte, error) {
@@ -85,17 +63,13 @@ func (r *Redis) GetBytes(key string) ([]byte, error) {
 
 	defer cancel()
 
-	result := r.Conn.Get(ctx, key)
+	res := r.Client.Get(ctx, key)
 
-	if err := result.Err(); err != nil {
-		if errors.Is(err, redis.Nil) {
-			return nil, nil
-		}
-
+	if err := res.Err(); err != nil {
 		return nil, err
 	}
 
-	return result.Bytes()
+	return res.Bytes()
 }
 
 func (r *Redis) Set(key string, value interface{}, ttl time.Duration) error {
@@ -103,53 +77,19 @@ func (r *Redis) Set(key string, value interface{}, ttl time.Duration) error {
 
 	defer cancel()
 
-	return r.Conn.Set(ctx, key, value, ttl).Err()
+	return r.Client.Set(ctx, key, value, ttl).Err()
 }
 
-func (r *Redis) GetValueAndTTL(key string) (bool, string, time.Duration, error) {
-	exists, err := r.Exists(key)
+func (r *Redis) SetJSON(key string, value interface{}, ttl time.Duration) error {
+	data, err := json.Marshal(value)
 
 	if err != nil {
-		return false, "", 0, err
+		return err
 	}
 
-	if !exists {
-		return false, "", 0, nil
-	}
-
-	value, err := r.Get(key)
-
-	if err != nil {
-		return false, "", 0, err
-	}
-
-	ttl, err := r.TTL(key)
-
-	return true, value, ttl, err
-}
-
-func (r *Redis) Keys(pattern string) ([]string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-
-	defer cancel()
-
-	res := r.Conn.Keys(ctx, pattern)
-
-	if err := res.Err(); err != nil {
-		return nil, err
-	}
-
-	return res.Result()
-}
-
-func (r *Redis) Delete(keys ...string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-
-	defer cancel()
-
-	return r.Conn.Del(ctx, keys...).Err()
+	return r.Set(key, data, ttl)
 }
 
 func (r *Redis) Close() error {
-	return r.Conn.Close()
+	return r.Client.Close()
 }
