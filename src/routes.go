@@ -8,9 +8,14 @@ import (
 )
 
 func init() {
+	app.Get("/ping", PingHandler)
 	app.Get("/status/java/:address", JavaStatusHandler)
 	app.Get("/status/bedrock/:address", BedrockStatusHandler)
 	app.Get("/icon/:address", IconHandler)
+}
+
+func PingHandler(ctx *fiber.Ctx) error {
+	return ctx.SendStatus(http.StatusOK)
 }
 
 func JavaStatusHandler(ctx *fiber.Ctx) error {
