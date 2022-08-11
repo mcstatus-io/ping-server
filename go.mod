@@ -3,9 +3,9 @@ module main
 go 1.18
 
 require (
-	github.com/PassTheMayo/mcstatus/v4 v4.0.2
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/gofiber/fiber/v2 v2.35.0
+	github.com/mcstatus-io/mcutil v0.0.0-20220811020841-9c02c743caf4
 	gopkg.in/yaml.v3 v3.0.1
 )
 

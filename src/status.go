@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/PassTheMayo/mcstatus/v4"
+	"github.com/mcstatus-io/mcutil"
 )
 
 type StatusOffline struct {
@@ -150,7 +150,7 @@ func GetServerIcon(host string, port uint16) ([]byte, error) {
 
 	icon := defaultIconBytes
 
-	status, err := mcstatus.Status(host, port)
+	status, err := mcutil.Status(host, port)
 
 	if err == nil && status.Favicon != nil && strings.HasPrefix(*status.Favicon, "data:image/png;base64,") {
 		data, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(*status.Favicon, "data:image/png;base64,"))
@@ -172,10 +172,10 @@ func GetServerIcon(host string, port uint16) ([]byte, error) {
 }
 
 func FetchJavaStatus(host string, port uint16) interface{} {
-	status, err := mcstatus.Status(host, port)
+	status, err := mcutil.Status(host, port)
 
 	if err != nil {
-		statusLegacy, err := mcstatus.StatusLegacy(host, port)
+		statusLegacy, err := mcutil.StatusLegacy(host, port)
 
 		if err != nil {
 			return StatusOffline{
@@ -208,9 +208,9 @@ func FetchJavaStatus(host string, port uint16) interface{} {
 
 		if statusLegacy.Version != nil {
 			response.Version = &JavaVersion{
-				NameRaw:   statusLegacy.Version.Name,
-				NameClean: statusLegacy.Version.Clean,
-				NameHTML:  statusLegacy.Version.HTML,
+				NameRaw:   statusLegacy.Version.NameRaw,
+				NameClean: statusLegacy.Version.NameClean,
+				NameHTML:  statusLegacy.Version.NameHTML,
 				Protocol:  statusLegacy.Version.Protocol,
 			}
 		}
@@ -224,9 +224,9 @@ func FetchJavaStatus(host string, port uint16) interface{} {
 		for _, player := range status.Players.Sample {
 			playerList = append(playerList, Player{
 				UUID:      player.ID,
-				NameRaw:   player.Name,
-				NameClean: player.Clean,
-				NameHTML:  player.HTML,
+				NameRaw:   player.NameRaw,
+				NameClean: player.NameClean,
+				NameHTML:  player.NameHTML,
 			})
 		}
 	}
@@ -248,9 +248,9 @@ func FetchJavaStatus(host string, port uint16) interface{} {
 		Port:        port,
 		EULABlocked: IsBlockedAddress(host),
 		Version: &JavaVersion{
-			NameRaw:   status.Version.Name,
-			NameClean: status.Version.Clean,
-			NameHTML:  status.Version.HTML,
+			NameRaw:   status.Version.NameRaw,
+			NameClean: status.Version.NameClean,
+			NameHTML:  status.Version.NameHTML,
 			Protocol:  status.Version.Protocol,
 		},
 		Players: JavaPlayers{
@@ -269,7 +269,7 @@ func FetchJavaStatus(host string, port uint16) interface{} {
 }
 
 func FetchBedrockStatus(host string, port uint16) interface{} {
-	status, err := mcstatus.StatusBedrock(host, port)
+	status, err := mcutil.StatusBedrock(host, port)
 
 	if err != nil {
 		return StatusOffline{
