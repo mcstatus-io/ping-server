@@ -4,19 +4,28 @@ import (
 	"crypto/sha1"
 	_ "embed"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var (
 	//go:embed icon.png
 	defaultIconBytes []byte
-	ipAddressRegExp  = regexp.MustCompile("^\\d{1,3}(\\.\\d{1,3}){3}$")
+	ipAddressRegExp  = regexp.MustCompile(`^\d{1,3}(\.\d{1,3}){3}$`)
 )
+
+type BlockedServersFile struct {
+	LastUpdated time.Time `json:"last_updated"`
+	Servers     []string  `json:"servers"`
+}
 
 func Contains[T comparable](arr []T, v T) bool {
 	for _, value := range arr {
@@ -29,6 +38,36 @@ func Contains[T comparable](arr []T, v T) bool {
 }
 
 func GetBlockedServerList() error {
+	f, err := os.OpenFile("blocked-servers.json", os.O_CREATE|os.O_RDWR, 0777)
+
+	if err != nil {
+		return err
+	}
+
+	defer f.Close()
+
+	data, err := ioutil.ReadAll(f)
+
+	if err != nil {
+		return err
+	}
+
+	if len(data) > 0 {
+		var blockedServersFile BlockedServersFile
+
+		if err = json.Unmarshal(data, &blockedServersFile); err != nil {
+			return err
+		}
+
+		if time.Since(blockedServersFile.LastUpdated).Hours() < 24 {
+			blockedServersMutex.Lock()
+			blockedServers = blockedServersFile.Servers
+			blockedServersMutex.Unlock()
+
+			return nil
+		}
+	}
+
 	resp, err := http.Get("https://sessionserver.mojang.com/blockedservers")
 
 	if err != nil {
@@ -38,6 +77,8 @@ func GetBlockedServerList() error {
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
+
+	log.Println("Successfully retrieved EULA blocked servers")
 
 	defer resp.Body.Close()
 
@@ -49,9 +90,27 @@ func GetBlockedServerList() error {
 
 	blockedServersMutex.Lock()
 	blockedServers = strings.Split(string(body), "\n")
-	blockedServersMutex.Unlock()
 
-	return nil
+	defer blockedServersMutex.Unlock()
+
+	if data, err = json.Marshal(BlockedServersFile{
+		LastUpdated: time.Now(),
+		Servers:     blockedServers,
+	}); err != nil {
+		return err
+	}
+
+	if err = f.Truncate(0); err != nil {
+		return err
+	}
+
+	if _, err = f.Seek(0, 0); err != nil {
+		return err
+	}
+
+	_, err = f.Write(data)
+
+	return err
 }
 
 func IsBlockedAddress(address string) bool {

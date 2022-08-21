@@ -1,3 +1,4 @@
 bin/
 config.yml
 .DS_Store
+blocked-servers.json

@@ -8,7 +8,7 @@ import (
 	"github.com/mcstatus-io/mcutil"
 )
 
-type StatusOffline struct {
+type StatusResponse struct {
 	Online      bool   `json:"online"`
 	Host        string `json:"host"`
 	Port        uint16 `json:"port"`
@@ -16,28 +16,22 @@ type StatusOffline struct {
 }
 
 type JavaStatusResponse struct {
-	Online      bool         `json:"online"`
-	Host        string       `json:"host"`
-	Port        uint16       `json:"port"`
-	EULABlocked bool         `json:"eula_blocked"`
-	Version     *JavaVersion `json:"version"`
-	Players     JavaPlayers  `json:"players"`
-	MOTD        MOTD         `json:"motd"`
-	Icon        *string      `json:"icon"`
-	Mods        []Mod        `json:"mods"`
+	StatusResponse
+	Version *JavaVersion `json:"version"`
+	Players JavaPlayers  `json:"players"`
+	MOTD    MOTD         `json:"motd"`
+	Icon    *string      `json:"icon"`
+	Mods    []Mod        `json:"mods"`
 }
 
 type BedrockStatusResponse struct {
-	Online      bool            `json:"online"`
-	Host        string          `json:"host"`
-	Port        uint16          `json:"port"`
-	EULABlocked bool            `json:"eula_blocked"`
-	Version     *BedrockVersion `json:"version"`
-	Players     *BedrockPlayers `json:"players"`
-	MOTD        *MOTD           `json:"motd"`
-	Gamemode    *string         `json:"gamemode"`
-	ServerID    *string         `json:"server_id"`
-	Edition     *string         `json:"edition"`
+	StatusResponse
+	Version  *BedrockVersion `json:"version"`
+	Players  *BedrockPlayers `json:"players"`
+	MOTD     *MOTD           `json:"motd"`
+	Gamemode *string         `json:"gamemode"`
+	ServerID *string         `json:"server_id"`
+	Edition  *string         `json:"edition"`
 }
 
 type JavaVersion struct {
@@ -84,24 +78,20 @@ type Mod struct {
 func GetJavaStatus(host string, port uint16) (interface{}, error) {
 	cacheKey := fmt.Sprintf("java:%s-%d", host, port)
 
-	if config.Cache.Enable {
-		exists, err := r.Exists(cacheKey)
+	cacheExists, err := r.Exists(cacheKey)
 
-		if err != nil {
-			return nil, err
-		}
+	if err != nil {
+		return nil, err
+	}
 
-		if exists {
-			return r.GetString(cacheKey)
-		}
+	if cacheExists {
+		return r.GetString(cacheKey)
 	}
 
 	response := FetchJavaStatus(host, port)
 
-	if config.Cache.Enable {
-		if err := r.SetJSON(cacheKey, response, config.Cache.JavaCacheDuration); err != nil {
-			return nil, err
-		}
+	if err := r.SetJSON(cacheKey, response, config.Cache.JavaCacheDuration); err != nil {
+		return nil, err
 	}
 
 	return response, nil
@@ -110,24 +100,20 @@ func GetJavaStatus(host string, port uint16) (interface{}, error) {
 func GetBedrockStatus(host string, port uint16) (interface{}, error) {
 	cacheKey := fmt.Sprintf("bedrock:%s-%d", host, port)
 
-	if config.Cache.Enable {
-		exists, err := r.Exists(cacheKey)
+	cacheExists, err := r.Exists(cacheKey)
 
-		if err != nil {
-			return nil, err
-		}
+	if err != nil {
+		return nil, err
+	}
 
-		if exists {
-			return r.GetString(cacheKey)
-		}
+	if cacheExists {
+		return r.GetString(cacheKey)
 	}
 
 	response := FetchBedrockStatus(host, port)
 
-	if config.Cache.Enable {
-		if err := r.SetJSON(cacheKey, response, config.Cache.BedrockCacheDuration); err != nil {
-			return nil, err
-		}
+	if err := r.SetJSON(cacheKey, response, config.Cache.BedrockCacheDuration); err != nil {
+		return nil, err
 	}
 
 	return response, nil
@@ -136,16 +122,14 @@ func GetBedrockStatus(host string, port uint16) (interface{}, error) {
 func GetServerIcon(host string, port uint16) ([]byte, error) {
 	cacheKey := fmt.Sprintf("icon:%s-%d", host, port)
 
-	if config.Cache.Enable {
-		exists, err := r.Exists(cacheKey)
+	cacheExists, err := r.Exists(cacheKey)
 
-		if err != nil {
-			return nil, err
-		}
+	if err != nil {
+		return nil, err
+	}
 
-		if exists {
-			return r.GetBytes(cacheKey)
-		}
+	if cacheExists {
+		return r.GetBytes(cacheKey)
 	}
 
 	icon := defaultIconBytes
@@ -162,10 +146,8 @@ func GetServerIcon(host string, port uint16) ([]byte, error) {
 		icon = data
 	}
 
-	if config.Cache.Enable {
-		if err := r.Set(cacheKey, icon, config.Cache.IconCacheDuration); err != nil {
-			return nil, err
-		}
+	if err := r.Set(cacheKey, icon, config.Cache.IconCacheDuration); err != nil {
+		return nil, err
 	}
 
 	return icon, nil
@@ -178,7 +160,7 @@ func FetchJavaStatus(host string, port uint16) interface{} {
 		statusLegacy, err := mcutil.StatusLegacy(host, port)
 
 		if err != nil {
-			return StatusOffline{
+			return StatusResponse{
 				Online:      false,
 				Host:        host,
 				Port:        port,
@@ -187,11 +169,13 @@ func FetchJavaStatus(host string, port uint16) interface{} {
 		}
 
 		response := JavaStatusResponse{
-			Online:      true,
-			Host:        host,
-			Port:        port,
-			EULABlocked: IsBlockedAddress(host),
-			Version:     nil,
+			StatusResponse: StatusResponse{
+				Online:      true,
+				Host:        host,
+				Port:        port,
+				EULABlocked: IsBlockedAddress(host),
+			},
+			Version: nil,
 			Players: JavaPlayers{
 				Online: statusLegacy.Players.Online,
 				Max:    statusLegacy.Players.Max,
@@ -243,10 +227,12 @@ func FetchJavaStatus(host string, port uint16) interface{} {
 	}
 
 	return JavaStatusResponse{
-		Online:      true,
-		Host:        host,
-		Port:        port,
-		EULABlocked: IsBlockedAddress(host),
+		StatusResponse: StatusResponse{
+			Online:      true,
+			Host:        host,
+			Port:        port,
+			EULABlocked: IsBlockedAddress(host),
+		},
 		Version: &JavaVersion{
 			NameRaw:   status.Version.NameRaw,
 			NameClean: status.Version.NameClean,
@@ -272,7 +258,7 @@ func FetchBedrockStatus(host string, port uint16) interface{} {
 	status, err := mcutil.StatusBedrock(host, port)
 
 	if err != nil {
-		return StatusOffline{
+		return StatusResponse{
 			Online:      false,
 			Host:        host,
 			Port:        port,
@@ -281,16 +267,18 @@ func FetchBedrockStatus(host string, port uint16) interface{} {
 	}
 
 	response := BedrockStatusResponse{
-		Online:      true,
-		Host:        host,
-		Port:        port,
-		EULABlocked: IsBlockedAddress(host),
-		Version:     nil,
-		Players:     nil,
-		MOTD:        nil,
-		Gamemode:    status.Gamemode,
-		ServerID:    status.ServerID,
-		Edition:     status.Edition,
+		StatusResponse: StatusResponse{
+			Online:      true,
+			Host:        host,
+			Port:        port,
+			EULABlocked: IsBlockedAddress(host),
+		},
+		Version:  nil,
+		Players:  nil,
+		MOTD:     nil,
+		Gamemode: status.Gamemode,
+		ServerID: status.ServerID,
+		Edition:  status.Edition,
 	}
 
 	if status.Version != nil {

@@ -24,17 +24,19 @@ func init() {
 		log.Fatal(err)
 	}
 
-	if err := r.Connect(config.Redis); err != nil {
-		log.Fatal(err)
-	}
+	r.SetEnabled(config.Cache.Enable)
 
-	log.Println("Successfully connected to Redis")
+	if config.Cache.Enable {
+		if err := r.Connect(config.Redis); err != nil {
+			log.Fatal(err)
+		}
+
+		log.Println("Successfully connected to Redis")
+	}
 
 	if err := GetBlockedServerList(); err != nil {
 		log.Fatal(err)
 	}
-
-	log.Println("Successfully retrieved EULA blocked servers")
 
 	if instanceID := os.Getenv("INSTANCE_ID"); len(instanceID) > 0 {
 		value, err := strconv.ParseUint(instanceID, 10, 16)

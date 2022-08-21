@@ -9,10 +9,19 @@ import (
 )
 
 type Redis struct {
-	Client *redis.Client
+	Enabled bool
+	Client  *redis.Client
+}
+
+func (r *Redis) SetEnabled(value bool) {
+	r.Enabled = value
 }
 
 func (r *Redis) Connect(uri string) error {
+	if !r.Enabled {
+		return nil
+	}
+
 	opts, err := redis.ParseURL(uri)
 
 	if err != nil {
@@ -29,6 +38,10 @@ func (r *Redis) Connect(uri string) error {
 }
 
 func (r *Redis) Exists(key string) (bool, error) {
+	if !r.Enabled {
+		return false, nil
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 
 	defer cancel()
@@ -45,6 +58,10 @@ func (r *Redis) Exists(key string) (bool, error) {
 }
 
 func (r *Redis) GetString(key string) (string, error) {
+	if !r.Enabled {
+		return "", nil
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 
 	defer cancel()
@@ -59,6 +76,10 @@ func (r *Redis) GetString(key string) (string, error) {
 }
 
 func (r *Redis) GetBytes(key string) ([]byte, error) {
+	if !r.Enabled {
+		return nil, nil
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 
 	defer cancel()
@@ -73,6 +94,10 @@ func (r *Redis) GetBytes(key string) ([]byte, error) {
 }
 
 func (r *Redis) Set(key string, value interface{}, ttl time.Duration) error {
+	if !r.Enabled {
+		return nil
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 
 	defer cancel()
@@ -81,6 +106,10 @@ func (r *Redis) Set(key string, value interface{}, ttl time.Duration) error {
 }
 
 func (r *Redis) SetJSON(key string, value interface{}, ttl time.Duration) error {
+	if !r.Enabled {
+		return nil
+	}
+
 	data, err := json.Marshal(value)
 
 	if err != nil {
@@ -91,5 +120,9 @@ func (r *Redis) SetJSON(key string, value interface{}, ttl time.Duration) error 
 }
 
 func (r *Redis) Close() error {
+	if !r.Enabled {
+		return nil
+	}
+
 	return r.Client.Close()
 }
