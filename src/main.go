@@ -38,6 +38,8 @@ func init() {
 		log.Fatal(err)
 	}
 
+	log.Println("Successfully retrieved EULA blocked servers")
+
 	if instanceID := os.Getenv("INSTANCE_ID"); len(instanceID) > 0 {
 		value, err := strconv.ParseUint(instanceID, 10, 16)
 
