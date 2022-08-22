@@ -53,7 +53,7 @@ func init() {
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:  "*",
 		AllowMethods:  "HEAD,OPTIONS,GET",
-		ExposeHeaders: "Content-Type",
+		ExposeHeaders: "Content-Type,X-Cache-Time-Remaining",
 	}))
 }
 
