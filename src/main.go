@@ -3,16 +3,18 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"strconv"
 	"sync"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/recover"
 )
 
 var (
-	app                 *fiber.App  = fiber.New(fiber.Config{DisableStartupMessage: true})
+	app                 *fiber.App  = nil
 	r                   *Redis      = &Redis{}
 	config              *Config     = &Config{}
 	blockedServers      []string    = nil
@@ -20,6 +22,15 @@ var (
 )
 
 func init() {
+	app = fiber.New(fiber.Config{
+		DisableStartupMessage: true,
+		ErrorHandler: func(ctx *fiber.Ctx, err error) error {
+			log.Println(err)
+
+			return ctx.SendStatus(http.StatusInternalServerError)
+		},
+	})
+
 	if err := config.ReadFile("config.yml"); err != nil {
 		log.Fatal(err)
 	}
@@ -55,6 +66,8 @@ func init() {
 		AllowMethods:  "HEAD,OPTIONS,GET",
 		ExposeHeaders: "Content-Type,X-Cache-Time-Remaining",
 	}))
+
+	app.Use(recover.New())
 }
 
 func main() {

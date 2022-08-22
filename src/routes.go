@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"net/http"
 	"strconv"
 
@@ -23,8 +22,6 @@ func JavaStatusHandler(ctx *fiber.Ctx) error {
 	host, port, err := ParseAddress(ctx.Params("address"), 25565)
 
 	if err != nil {
-		log.Println(err)
-
 		return ctx.Status(http.StatusBadRequest).SendString("Invalid address value")
 	}
 
@@ -38,7 +35,7 @@ func JavaStatusHandler(ctx *fiber.Ctx) error {
 		ctx.Set("X-Cache-Time-Remaining", strconv.Itoa(int(expiresAt.Seconds())))
 	}
 
-	return ctx.JSON(response)
+	return ctx.SendString(response)
 }
 
 func BedrockStatusHandler(ctx *fiber.Ctx) error {
@@ -58,7 +55,7 @@ func BedrockStatusHandler(ctx *fiber.Ctx) error {
 		ctx.Set("X-Cache-Time-Remaining", strconv.Itoa(int(expiresAt.Seconds())))
 	}
 
-	return ctx.JSON(response)
+	return ctx.SendString(response)
 }
 
 func IconHandler(ctx *fiber.Ctx) error {

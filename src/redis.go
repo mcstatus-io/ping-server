@@ -75,9 +75,9 @@ func (r *Redis) TTL(key string) (time.Duration, error) {
 	return res.Result()
 }
 
-func (r *Redis) GetJSON(key string, value interface{}) error {
+func (r *Redis) GetString(key string) (string, error) {
 	if !r.Enabled {
-		return nil
+		return "", nil
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
@@ -87,16 +87,10 @@ func (r *Redis) GetJSON(key string, value interface{}) error {
 	res := r.Client.Get(ctx, key)
 
 	if err := res.Err(); err != nil {
-		return err
+		return "", nil
 	}
 
-	data, err := res.Bytes()
-
-	if err != nil {
-		return err
-	}
-
-	return json.Unmarshal(data, value)
+	return res.Result()
 }
 
 func (r *Redis) GetBytes(key string) ([]byte, error) {
