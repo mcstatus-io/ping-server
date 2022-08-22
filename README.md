@@ -3,8 +3,9 @@ The REST server that powers the API for mcstatus.io. This repository is open sou
 
 ## Requirements
 
+- [Git](https://git-scm.com/)
 - [Go](https://go.dev/)
-- [Redis](https://redis.io/)
+- [Redis](https://redis.io/) (*optional with caching disabled*)
 - [GNU Make](https://www.gnu.org/software/make/) (*optional*)
 
 ## Installation
