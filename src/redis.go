@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -121,20 +120,6 @@ func (r *Redis) Set(key string, value interface{}, ttl time.Duration) error {
 	defer cancel()
 
 	return r.Client.Set(ctx, key, value, ttl).Err()
-}
-
-func (r *Redis) SetJSON(key string, value interface{}, ttl time.Duration) error {
-	if !r.Enabled {
-		return nil
-	}
-
-	data, err := json.Marshal(value)
-
-	if err != nil {
-		return err
-	}
-
-	return r.Set(key, data, ttl)
 }
 
 func (r *Redis) Close() error {
