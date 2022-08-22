@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/mcstatus-io/mcutil"
 )
@@ -75,48 +76,64 @@ type Mod struct {
 	Version string `json:"version"`
 }
 
-func GetJavaStatus(host string, port uint16) (interface{}, error) {
+func GetJavaStatus(host string, port uint16) (interface{}, *time.Duration, error) {
 	cacheKey := fmt.Sprintf("java:%s-%d", host, port)
 
 	cacheExists, err := r.Exists(cacheKey)
 
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if cacheExists {
-		return r.GetString(cacheKey)
+		var response JavaStatusResponse
+
+		if err = r.GetJSON(cacheKey, &response); err != nil {
+			return nil, nil, err
+		}
+
+		expiresAt, err := r.TTL(cacheKey)
+
+		return response, &expiresAt, err
 	}
 
 	response := FetchJavaStatus(host, port)
 
 	if err := r.SetJSON(cacheKey, response, config.Cache.JavaCacheDuration); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return response, nil
+	return response, nil, nil
 }
 
-func GetBedrockStatus(host string, port uint16) (interface{}, error) {
+func GetBedrockStatus(host string, port uint16) (interface{}, *time.Duration, error) {
 	cacheKey := fmt.Sprintf("bedrock:%s-%d", host, port)
 
 	cacheExists, err := r.Exists(cacheKey)
 
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if cacheExists {
-		return r.GetString(cacheKey)
+		var response BedrockStatusResponse
+
+		if err = r.GetJSON(cacheKey, &response); err != nil {
+			return nil, nil, err
+		}
+
+		expiresAt, err := r.TTL(cacheKey)
+
+		return response, &expiresAt, err
 	}
 
 	response := FetchBedrockStatus(host, port)
 
 	if err := r.SetJSON(cacheKey, response, config.Cache.BedrockCacheDuration); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return response, nil
+	return response, nil, nil
 }
 
 func GetServerIcon(host string, port uint16) ([]byte, error) {

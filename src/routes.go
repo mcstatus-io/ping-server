@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -27,18 +28,17 @@ func JavaStatusHandler(ctx *fiber.Ctx) error {
 		return ctx.Status(http.StatusBadRequest).SendString("Invalid address value")
 	}
 
-	response, err := GetJavaStatus(host, port)
+	response, expiresAt, err := GetJavaStatus(host, port)
 
 	if err != nil {
 		return err
 	}
 
-	switch v := response.(type) {
-	case string:
-		return ctx.Type("json").SendString(v)
-	default:
-		return ctx.JSON(response)
+	if expiresAt != nil {
+		ctx.Set("X-Cache-Time-Remaining", strconv.Itoa(int(expiresAt.Seconds())))
 	}
+
+	return ctx.JSON(response)
 }
 
 func BedrockStatusHandler(ctx *fiber.Ctx) error {
@@ -48,18 +48,17 @@ func BedrockStatusHandler(ctx *fiber.Ctx) error {
 		return ctx.Status(http.StatusBadRequest).SendString("Invalid address value")
 	}
 
-	response, err := GetBedrockStatus(host, port)
+	response, expiresAt, err := GetBedrockStatus(host, port)
 
 	if err != nil {
 		return err
 	}
 
-	switch v := response.(type) {
-	case string:
-		return ctx.Type("json").SendString(v)
-	default:
-		return ctx.JSON(response)
+	if expiresAt != nil {
+		ctx.Set("X-Cache-Time-Remaining", strconv.Itoa(int(expiresAt.Seconds())))
 	}
+
+	return ctx.JSON(response)
 }
 
 func IconHandler(ctx *fiber.Ctx) error {

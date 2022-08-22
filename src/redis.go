@@ -57,9 +57,27 @@ func (r *Redis) Exists(key string) (bool, error) {
 	return val == 1, err
 }
 
-func (r *Redis) GetString(key string) (string, error) {
+func (r *Redis) TTL(key string) (time.Duration, error) {
 	if !r.Enabled {
-		return "", nil
+		return 0, nil
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+
+	defer cancel()
+
+	res := r.Client.TTL(ctx, key)
+
+	if err := res.Err(); err != nil {
+		return 0, err
+	}
+
+	return res.Result()
+}
+
+func (r *Redis) GetJSON(key string, value interface{}) error {
+	if !r.Enabled {
+		return nil
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
@@ -69,10 +87,16 @@ func (r *Redis) GetString(key string) (string, error) {
 	res := r.Client.Get(ctx, key)
 
 	if err := res.Err(); err != nil {
-		return "", err
+		return err
 	}
 
-	return res.Result()
+	data, err := res.Bytes()
+
+	if err != nil {
+		return err
+	}
+
+	return json.Unmarshal(data, value)
 }
 
 func (r *Redis) GetBytes(key string) ([]byte, error) {
