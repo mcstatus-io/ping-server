@@ -8,16 +8,11 @@ import (
 )
 
 type Redis struct {
-	Enabled bool
-	Client  *redis.Client
-}
-
-func (r *Redis) SetEnabled(value bool) {
-	r.Enabled = value
+	Client *redis.Client
 }
 
 func (r *Redis) Connect(uri string) error {
-	if !r.Enabled {
+	if !config.Cache.Enable {
 		return nil
 	}
 
@@ -37,7 +32,7 @@ func (r *Redis) Connect(uri string) error {
 }
 
 func (r *Redis) Exists(key string) (bool, error) {
-	if !r.Enabled {
+	if !config.Cache.Enable {
 		return false, nil
 	}
 
@@ -57,7 +52,7 @@ func (r *Redis) Exists(key string) (bool, error) {
 }
 
 func (r *Redis) TTL(key string) (time.Duration, error) {
-	if !r.Enabled {
+	if !config.Cache.Enable {
 		return 0, nil
 	}
 
@@ -75,7 +70,7 @@ func (r *Redis) TTL(key string) (time.Duration, error) {
 }
 
 func (r *Redis) GetString(key string) (string, error) {
-	if !r.Enabled {
+	if !config.Cache.Enable {
 		return "", nil
 	}
 
@@ -93,7 +88,7 @@ func (r *Redis) GetString(key string) (string, error) {
 }
 
 func (r *Redis) GetBytes(key string) ([]byte, error) {
-	if !r.Enabled {
+	if !config.Cache.Enable {
 		return nil, nil
 	}
 
@@ -111,7 +106,7 @@ func (r *Redis) GetBytes(key string) ([]byte, error) {
 }
 
 func (r *Redis) Set(key string, value interface{}, ttl time.Duration) error {
-	if !r.Enabled {
+	if !config.Cache.Enable {
 		return nil
 	}
 
@@ -123,7 +118,7 @@ func (r *Redis) Set(key string, value interface{}, ttl time.Duration) error {
 }
 
 func (r *Redis) Close() error {
-	if !r.Enabled {
+	if !config.Cache.Enable {
 		return nil
 	}
 

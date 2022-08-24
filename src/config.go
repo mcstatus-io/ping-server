@@ -1,7 +1,7 @@
 package main
 
 import (
-	"io/ioutil"
+	"os"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -20,7 +20,7 @@ type Config struct {
 }
 
 func (c *Config) ReadFile(file string) error {
-	data, err := ioutil.ReadFile(file)
+	data, err := os.ReadFile(file)
 
 	if err != nil {
 		return err

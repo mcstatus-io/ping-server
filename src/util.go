@@ -5,11 +5,14 @@ import (
 	_ "embed"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
+	"io"
+	"log"
 	"net/http"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 var (
@@ -17,16 +20,6 @@ var (
 	defaultIconBytes []byte
 	ipAddressRegExp  = regexp.MustCompile(`^\d{1,3}(\.\d{1,3}){3}$`)
 )
-
-func Contains[T comparable](arr []T, v T) bool {
-	for _, value := range arr {
-		if v == value {
-			return true
-		}
-	}
-
-	return false
-}
 
 func GetBlockedServerList() error {
 	resp, err := http.Get("https://sessionserver.mojang.com/blockedservers")
@@ -41,15 +34,16 @@ func GetBlockedServerList() error {
 
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 
 	if err != nil {
 		return err
 	}
 
-	blockedServersMutex.Lock()
-	blockedServers = strings.Split(string(body), "\n")
-	blockedServersMutex.Unlock()
+	blockedServers = &MutexArray[string]{
+		List:  strings.Split(string(body), "\n"),
+		Mutex: &sync.Mutex{},
+	}
 
 	return nil
 }
@@ -84,15 +78,9 @@ func IsBlockedAddress(address string) bool {
 		newAddressBytes := sha1.Sum([]byte(newAddress))
 		newAddressHash := hex.EncodeToString(newAddressBytes[:])
 
-		blockedServersMutex.Lock()
-
-		if Contains(blockedServers, newAddressHash) {
-			blockedServersMutex.Unlock()
-
+		if blockedServers.Has(newAddressHash) {
 			return true
 		}
-
-		blockedServersMutex.Unlock()
 	}
 
 	return false
@@ -116,4 +104,37 @@ func ParseAddress(address string, defaultPort uint16) (string, uint16, error) {
 	}
 
 	return result[0], uint16(port), nil
+}
+
+func GetInstanceID() (uint16, error) {
+	if instanceID := os.Getenv("INSTANCE_ID"); len(instanceID) > 0 {
+		value, err := strconv.ParseUint(instanceID, 10, 16)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		return uint16(value), nil
+	}
+
+	return 0, nil
+}
+
+type MutexArray[K comparable] struct {
+	List  []K
+	Mutex *sync.Mutex
+}
+
+func (m *MutexArray[K]) Has(value K) bool {
+	m.Mutex.Lock()
+
+	defer m.Mutex.Unlock()
+
+	for _, v := range m.List {
+		if v == value {
+			return true
+		}
+	}
+
+	return false
 }
