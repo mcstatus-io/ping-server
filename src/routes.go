@@ -35,7 +35,7 @@ func JavaStatusHandler(ctx *fiber.Ctx) error {
 		ctx.Set("X-Cache-Time-Remaining", strconv.Itoa(int(expiresAt.Seconds())))
 	}
 
-	return ctx.SendString(response)
+	return ctx.Type("json").SendString(response)
 }
 
 func BedrockStatusHandler(ctx *fiber.Ctx) error {
@@ -55,7 +55,7 @@ func BedrockStatusHandler(ctx *fiber.Ctx) error {
 		ctx.Set("X-Cache-Time-Remaining", strconv.Itoa(int(expiresAt.Seconds())))
 	}
 
-	return ctx.SendString(response)
+	return ctx.Type("json").SendString(response)
 }
 
 func IconHandler(ctx *fiber.Ctx) error {
