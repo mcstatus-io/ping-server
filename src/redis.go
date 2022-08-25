@@ -31,6 +31,50 @@ func (r *Redis) Connect(uri string) error {
 	return r.Client.Ping(ctx).Err()
 }
 
+func (r *Redis) GetCacheString(key string) (bool, string, time.Duration, error) {
+	exists, err := r.Exists(key)
+
+	if err != nil {
+		return false, "", 0, err
+	}
+
+	if !exists {
+		return false, "", 0, nil
+	}
+
+	value, err := r.GetString(key)
+
+	if err != nil {
+		return true, "", 0, err
+	}
+
+	ttl, err := r.TTL(key)
+
+	return true, value, ttl, err
+}
+
+func (r *Redis) GetCacheBytes(key string) (bool, []byte, time.Duration, error) {
+	exists, err := r.Exists(key)
+
+	if err != nil {
+		return false, nil, 0, err
+	}
+
+	if !exists {
+		return false, nil, 0, nil
+	}
+
+	value, err := r.GetBytes(key)
+
+	if err != nil {
+		return true, nil, 0, err
+	}
+
+	ttl, err := r.TTL(key)
+
+	return true, value, ttl, err
+}
+
 func (r *Redis) Exists(key string) (bool, error) {
 	if !config.Cache.Enable {
 		return false, nil

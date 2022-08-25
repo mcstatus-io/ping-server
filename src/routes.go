@@ -66,10 +66,14 @@ func IconHandler(ctx *fiber.Ctx) error {
 		return ctx.Status(http.StatusBadRequest).SendString("Invalid address value")
 	}
 
-	icon, err := GetServerIcon(host, port)
+	icon, expiresAt, err := GetServerIcon(host, port)
 
 	if err != nil {
 		return err
+	}
+
+	if expiresAt != nil {
+		ctx.Set("X-Cache-Time-Remaining", strconv.Itoa(int(expiresAt.Seconds())))
 	}
 
 	return ctx.Type("png").Send(icon)

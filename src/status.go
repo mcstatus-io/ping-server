@@ -80,22 +80,10 @@ type Mod struct {
 func GetJavaStatus(host string, port uint16) (string, *time.Duration, error) {
 	cacheKey := fmt.Sprintf("java:%s-%d", host, port)
 
-	cacheExists, err := r.Exists(cacheKey)
+	exists, value, ttl, err := r.GetCacheString(cacheKey)
 
-	if err != nil {
-		return "", nil, err
-	}
-
-	if cacheExists {
-		response, err := r.GetString(cacheKey)
-
-		if err != nil {
-			return "", nil, err
-		}
-
-		expiresAt, err := r.TTL(cacheKey)
-
-		return response, &expiresAt, err
+	if exists {
+		return value, &ttl, err
 	}
 
 	response, err := json.Marshal(FetchJavaStatus(host, port))
@@ -114,22 +102,10 @@ func GetJavaStatus(host string, port uint16) (string, *time.Duration, error) {
 func GetBedrockStatus(host string, port uint16) (string, *time.Duration, error) {
 	cacheKey := fmt.Sprintf("bedrock:%s-%d", host, port)
 
-	cacheExists, err := r.Exists(cacheKey)
+	exists, value, ttl, err := r.GetCacheString(cacheKey)
 
-	if err != nil {
-		return "", nil, err
-	}
-
-	if cacheExists {
-		response, err := r.GetString(cacheKey)
-
-		if err != nil {
-			return "", nil, err
-		}
-
-		expiresAt, err := r.TTL(cacheKey)
-
-		return response, &expiresAt, err
+	if exists {
+		return value, &ttl, err
 	}
 
 	response, err := json.Marshal(FetchBedrockStatus(host, port))
@@ -145,17 +121,13 @@ func GetBedrockStatus(host string, port uint16) (string, *time.Duration, error) 
 	return string(response), nil, nil
 }
 
-func GetServerIcon(host string, port uint16) ([]byte, error) {
+func GetServerIcon(host string, port uint16) ([]byte, *time.Duration, error) {
 	cacheKey := fmt.Sprintf("icon:%s-%d", host, port)
 
-	cacheExists, err := r.Exists(cacheKey)
+	exists, value, ttl, err := r.GetCacheBytes(cacheKey)
 
-	if err != nil {
-		return nil, err
-	}
-
-	if cacheExists {
-		return r.GetBytes(cacheKey)
+	if exists {
+		return value, &ttl, err
 	}
 
 	icon := defaultIconBytes
@@ -166,17 +138,17 @@ func GetServerIcon(host string, port uint16) ([]byte, error) {
 		data, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(*status.Favicon, "data:image/png;base64,"))
 
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		icon = data
 	}
 
 	if err := r.Set(cacheKey, icon, config.Cache.IconCacheDuration); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return icon, nil
+	return icon, nil, nil
 }
 
 func FetchJavaStatus(host string, port uint16) interface{} {

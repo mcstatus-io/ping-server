@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/gofiber/fiber/v2 v2.36.0
-	github.com/mcstatus-io/mcutil v0.0.0-20220819164348-a0bb9bd8df56
+	github.com/mcstatus-io/mcutil v0.0.0-20220825201801-d3b6a8b30b56
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -17,5 +17,5 @@ require (
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.39.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect
-	golang.org/x/sys v0.0.0-20220818161305-2296e01440c6 // indirect
+	golang.org/x/sys v0.0.0-20220823224334-20c2bfdbfe24 // indirect
 )
