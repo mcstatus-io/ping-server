@@ -11,6 +11,7 @@ func init() {
 	app.Get("/ping", PingHandler)
 	app.Get("/status/java/:address", JavaStatusHandler)
 	app.Get("/status/bedrock/:address", BedrockStatusHandler)
+	app.Get("/icon/default", DefaultIconHandler)
 	app.Get("/icon/:address", IconHandler)
 	app.Use(NotFoundHandler)
 }
@@ -77,6 +78,10 @@ func IconHandler(ctx *fiber.Ctx) error {
 	}
 
 	return ctx.Type("png").Send(icon)
+}
+
+func DefaultIconHandler(ctx *fiber.Ctx) error {
+	return ctx.Type("png").Send(defaultIconBytes)
 }
 
 func NotFoundHandler(ctx *fiber.Ctx) error {
