@@ -16,6 +16,8 @@ github.com/mcstatus-io/mcutil v0.0.0-20220819164348-a0bb9bd8df56 h1:FZg8KfK/9b/J
 github.com/mcstatus-io/mcutil v0.0.0-20220819164348-a0bb9bd8df56/go.mod h1:VUB87/x9EYITmQVXZO4eS+egaZOdvxId4IdpU4L5LoA=
 github.com/mcstatus-io/mcutil v0.0.0-20220825201801-d3b6a8b30b56 h1:XtoLxtSRzXYWnLxYfkq+oJTUg0i43dltU4LQxXtr7rk=
 github.com/mcstatus-io/mcutil v0.0.0-20220825201801-d3b6a8b30b56/go.mod h1:VUB87/x9EYITmQVXZO4eS+egaZOdvxId4IdpU4L5LoA=
+github.com/mcstatus-io/mcutil v0.0.0-20220829055335-c1c2ef192eca h1:7cuzxW+L7ZsnZfhW5pL2QpCRduTmURKnBFfwREF8of4=
+github.com/mcstatus-io/mcutil v0.0.0-20220829055335-c1c2ef192eca/go.mod h1:VUB87/x9EYITmQVXZO4eS+egaZOdvxId4IdpU4L5LoA=
 github.com/nxadm/tail v1.4.8 h1:nPr65rt6Y5JFSKQO7qToXr7pePgD6Gwiw05lkbyAQTE=
 github.com/onsi/ginkgo v1.16.5 h1:8xi0RTUf59SOSfEtZMvwTvXYMzG4gV23XVHOZiXNtnE=
 github.com/onsi/gomega v1.18.1 h1:M1GfJqGRrBrrGGsbxzV5dqM2U2ApXefZCQpkukxYRLE=

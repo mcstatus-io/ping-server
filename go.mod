@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/gofiber/fiber/v2 v2.36.0
-	github.com/mcstatus-io/mcutil v0.0.0-20220825201801-d3b6a8b30b56
+	github.com/mcstatus-io/mcutil v0.0.0-20220829055335-c1c2ef192eca
 	gopkg.in/yaml.v3 v3.0.1
 )
 
