@@ -5,6 +5,8 @@ import (
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/mcstatus-io/shared/status"
+	"github.com/mcstatus-io/shared/util"
 )
 
 func init() {
@@ -27,7 +29,7 @@ func JavaStatusHandler(ctx *fiber.Ctx) error {
 		return ctx.Status(http.StatusBadRequest).SendString("Invalid address value")
 	}
 
-	response, expiresAt, err := GetJavaStatus(host, port)
+	response, expiresAt, err := status.GetJavaStatus(r, host, port, config.Cache.JavaCacheDuration)
 
 	if err != nil {
 		return err
@@ -37,7 +39,7 @@ func JavaStatusHandler(ctx *fiber.Ctx) error {
 		ctx.Set("X-Cache-Time-Remaining", strconv.Itoa(int(expiresAt.Seconds())))
 	}
 
-	return ctx.Type("json").SendString(response)
+	return ctx.JSON(response)
 }
 
 func BedrockStatusHandler(ctx *fiber.Ctx) error {
@@ -47,7 +49,7 @@ func BedrockStatusHandler(ctx *fiber.Ctx) error {
 		return ctx.Status(http.StatusBadRequest).SendString("Invalid address value")
 	}
 
-	response, expiresAt, err := GetBedrockStatus(host, port)
+	response, expiresAt, err := status.GetBedrockStatus(r, host, port, config.Cache.BedrockCacheDuration)
 
 	if err != nil {
 		return err
@@ -57,7 +59,7 @@ func BedrockStatusHandler(ctx *fiber.Ctx) error {
 		ctx.Set("X-Cache-Time-Remaining", strconv.Itoa(int(expiresAt.Seconds())))
 	}
 
-	return ctx.Type("json").SendString(response)
+	return ctx.JSON(response)
 }
 
 func IconHandler(ctx *fiber.Ctx) error {
@@ -67,7 +69,7 @@ func IconHandler(ctx *fiber.Ctx) error {
 		return ctx.Status(http.StatusBadRequest).SendString("Invalid address value")
 	}
 
-	icon, expiresAt, err := GetServerIcon(host, port)
+	icon, expiresAt, err := status.GetServerIcon(r, host, port, config.Cache.IconCacheDuration)
 
 	if err != nil {
 		return err
@@ -81,7 +83,7 @@ func IconHandler(ctx *fiber.Ctx) error {
 }
 
 func DefaultIconHandler(ctx *fiber.Ctx) error {
-	return ctx.Type("png").Send(defaultIconBytes)
+	return ctx.Type("png").Send(util.DefaultIconBytes)
 }
 
 func NotFoundHandler(ctx *fiber.Ctx) error {

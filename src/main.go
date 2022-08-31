@@ -8,6 +8,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/mcstatus-io/shared/redis"
+	"github.com/mcstatus-io/shared/util"
 )
 
 var (
@@ -19,9 +21,8 @@ var (
 			return ctx.SendStatus(http.StatusInternalServerError)
 		},
 	})
-	r              *Redis              = &Redis{}
-	config         *Config             = &Config{}
-	blockedServers *MutexArray[string] = nil
+	r      *redis.Redis = redis.New()
+	config *Config      = &Config{}
 )
 
 func init() {
@@ -29,13 +30,17 @@ func init() {
 		log.Fatal(err)
 	}
 
-	if err := r.Connect(config.Redis); err != nil {
-		log.Fatal(err)
+	r.SetEnabled(config.Cache.Enable)
+
+	if config.Cache.Enable {
+		if err := r.Connect(config.Redis); err != nil {
+			log.Fatal(err)
+		}
+
+		log.Println("Successfully connected to Redis")
 	}
 
-	log.Println("Successfully connected to Redis")
-
-	if err := GetBlockedServerList(); err != nil {
+	if err := util.GetBlockedServerList(); err != nil {
 		log.Fatal(err)
 	}
 
