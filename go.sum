@@ -16,6 +16,10 @@ github.com/mcstatus-io/mcutil v0.0.0-20220829055335-c1c2ef192eca h1:7cuzxW+L7Zsn
 github.com/mcstatus-io/mcutil v0.0.0-20220829055335-c1c2ef192eca/go.mod h1:VUB87/x9EYITmQVXZO4eS+egaZOdvxId4IdpU4L5LoA=
 github.com/mcstatus-io/shared v0.0.0-20220831015146-c4896270e6f6 h1:vs4Gqv9mjXw369ap2mM7SN3u306n7u35x+nbeLpsoX0=
 github.com/mcstatus-io/shared v0.0.0-20220831015146-c4896270e6f6/go.mod h1:0CPc1P/GzYKF3mS7CkRP3Mo/uOjU4fmZVkm0AF1c6D8=
+github.com/mcstatus-io/shared v0.0.0-20220831020724-45f9930045d4 h1:EuTkZOKU7dKdmQoW0UYHPf4ghcbTkVC5POUHbDblFEU=
+github.com/mcstatus-io/shared v0.0.0-20220831020724-45f9930045d4/go.mod h1:0CPc1P/GzYKF3mS7CkRP3Mo/uOjU4fmZVkm0AF1c6D8=
+github.com/mcstatus-io/shared v0.0.0-20220831020858-f06e905d3d58 h1:QLE9LMv75l9R880ZfVfHBwD9t3wpcxwfNVNTaoH06aY=
+github.com/mcstatus-io/shared v0.0.0-20220831020858-f06e905d3d58/go.mod h1:0CPc1P/GzYKF3mS7CkRP3Mo/uOjU4fmZVkm0AF1c6D8=
 github.com/nxadm/tail v1.4.8 h1:nPr65rt6Y5JFSKQO7qToXr7pePgD6Gwiw05lkbyAQTE=
 github.com/onsi/ginkgo v1.16.5 h1:8xi0RTUf59SOSfEtZMvwTvXYMzG4gV23XVHOZiXNtnE=
 github.com/onsi/gomega v1.18.1 h1:M1GfJqGRrBrrGGsbxzV5dqM2U2ApXefZCQpkukxYRLE=
