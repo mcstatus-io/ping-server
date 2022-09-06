@@ -56,6 +56,8 @@ func init() {
 }
 
 func main() {
+	defer r.Close()
+
 	instanceID, err := GetInstanceID()
 
 	if err != nil {
