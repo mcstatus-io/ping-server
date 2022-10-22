@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/gofiber/fiber/v2 v2.37.0
-	github.com/mcstatus-io/shared v0.0.0-20220831020858-f06e905d3d58
+	github.com/mcstatus-io/shared v0.0.0-20221022211501-c2159792b379
 	gopkg.in/yaml.v3 v3.0.1
 )
 
