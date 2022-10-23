@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/mcstatus-io/shared/status"
@@ -31,7 +30,7 @@ func JavaStatusHandler(ctx *fiber.Ctx) error {
 		return ctx.Status(http.StatusBadRequest).SendString("Invalid address value")
 	}
 
-	if err = r.Set(fmt.Sprintf("unique:%s-%d", host, port), time.Now(), 0); err != nil {
+	if err = r.Increment(fmt.Sprintf("java-hits:%s-%d", host, port)); err != nil {
 		return err
 	}
 
@@ -55,7 +54,7 @@ func BedrockStatusHandler(ctx *fiber.Ctx) error {
 		return ctx.Status(http.StatusBadRequest).SendString("Invalid address value")
 	}
 
-	if err = r.Set(fmt.Sprintf("unique:%s-%d", host, port), time.Now(), 0); err != nil {
+	if err = r.Increment(fmt.Sprintf("bedrock-hits:%s-%d", host, port)); err != nil {
 		return err
 	}
 
