@@ -16,7 +16,7 @@ var (
 	app *fiber.App = fiber.New(fiber.Config{
 		DisableStartupMessage: true,
 		ErrorHandler: func(ctx *fiber.Ctx, err error) error {
-			log.Println(err)
+			log.Println(ctx.Request().URI(), err)
 
 			return ctx.SendStatus(http.StatusInternalServerError)
 		},
