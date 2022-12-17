@@ -30,8 +30,6 @@ func init() {
 		log.Fatal(err)
 	}
 
-	r.SetEnabled(config.Cache.Enable)
-
 	if config.Cache.Enable {
 		if err := r.Connect(config.Redis); err != nil {
 			log.Fatal(err)
@@ -46,7 +44,6 @@ func init() {
 
 	log.Println("Successfully retrieved EULA blocked servers")
 
-	app.Config()
 	app.Use(recover.New())
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:  "*",

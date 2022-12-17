@@ -16,6 +16,14 @@ github.com/mcstatus-io/mcutil v0.0.0-20220829055335-c1c2ef192eca h1:7cuzxW+L7Zsn
 github.com/mcstatus-io/mcutil v0.0.0-20220829055335-c1c2ef192eca/go.mod h1:VUB87/x9EYITmQVXZO4eS+egaZOdvxId4IdpU4L5LoA=
 github.com/mcstatus-io/shared v0.0.0-20221023001202-042a64f3e9a8 h1:rELiwobCe1cWY6Plr3oArLYAPh41hZw1JvZz4h4Pvbw=
 github.com/mcstatus-io/shared v0.0.0-20221023001202-042a64f3e9a8/go.mod h1:0CPc1P/GzYKF3mS7CkRP3Mo/uOjU4fmZVkm0AF1c6D8=
+github.com/mcstatus-io/shared v0.0.0-20221217073539-81255189910f h1:ZroQAPCC/759RuKkyXvRa7yg+4QF9vMK68+bFabf+PA=
+github.com/mcstatus-io/shared v0.0.0-20221217073539-81255189910f/go.mod h1:QnLKXHSdkVFWGpP4yu2rhlkxdRLW/SBQoR2qqi1lYRQ=
+github.com/mcstatus-io/shared v0.0.0-20221217074644-8258241e8c44 h1:IE9w6dUXgr6aScK7P0Rt9jiX3ANz+g0c7ssAjCAp7/M=
+github.com/mcstatus-io/shared v0.0.0-20221217074644-8258241e8c44/go.mod h1:QnLKXHSdkVFWGpP4yu2rhlkxdRLW/SBQoR2qqi1lYRQ=
+github.com/mcstatus-io/shared v1.0.2 h1:GN4urv/n5QXuqC1q5OR+43QWb1JUhh1UP7dpEfLQL/c=
+github.com/mcstatus-io/shared v1.0.2/go.mod h1:QnLKXHSdkVFWGpP4yu2rhlkxdRLW/SBQoR2qqi1lYRQ=
+github.com/mcstatus-io/shared v1.0.3 h1:P90CtglbAli6sZLQqrYP7Zhr7bqJiiQOkntBM8q3wW4=
+github.com/mcstatus-io/shared v1.0.3/go.mod h1:QnLKXHSdkVFWGpP4yu2rhlkxdRLW/SBQoR2qqi1lYRQ=
 github.com/nxadm/tail v1.4.8 h1:nPr65rt6Y5JFSKQO7qToXr7pePgD6Gwiw05lkbyAQTE=
 github.com/onsi/ginkgo v1.16.5 h1:8xi0RTUf59SOSfEtZMvwTvXYMzG4gV23XVHOZiXNtnE=
 github.com/onsi/gomega v1.18.1 h1:M1GfJqGRrBrrGGsbxzV5dqM2U2ApXefZCQpkukxYRLE=
