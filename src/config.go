@@ -8,10 +8,11 @@ import (
 )
 
 type Config struct {
-	Host  string `yaml:"host"`
-	Port  uint16 `yaml:"port"`
-	Redis string `yaml:"redis"`
-	Cache struct {
+	Environment string `yaml:"environment"`
+	Host        string `yaml:"host"`
+	Port        uint16 `yaml:"port"`
+	Redis       string `yaml:"redis"`
+	Cache       struct {
 		Enable               bool          `yaml:"enable"`
 		JavaCacheDuration    time.Duration `yaml:"java_cache_duration"`
 		BedrockCacheDuration time.Duration `yaml:"bedrock_cache_duration"`

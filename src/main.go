@@ -7,9 +7,8 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
-	"github.com/mcstatus-io/shared/redis"
-	"github.com/mcstatus-io/shared/util"
 )
 
 var (
@@ -21,8 +20,8 @@ var (
 			return ctx.SendStatus(http.StatusInternalServerError)
 		},
 	})
-	r      *redis.Redis = redis.New()
-	config *Config      = &Config{}
+	r      *Redis  = &Redis{}
+	config *Config = &Config{}
 )
 
 func init() {
@@ -38,7 +37,7 @@ func init() {
 		log.Println("Successfully connected to Redis")
 	}
 
-	if err := util.GetBlockedServerList(); err != nil {
+	if err := GetBlockedServerList(); err != nil {
 		log.Fatal(err)
 	}
 
@@ -50,17 +49,18 @@ func init() {
 		AllowMethods:  "HEAD,OPTIONS,GET",
 		ExposeHeaders: "Content-Type,X-Cache-Time-Remaining",
 	}))
+
+	if config.Environment == "development" {
+		app.Use(logger.New(logger.Config{
+			Format:     "${time} ${ip}:${port} -> ${method} ${path} -> ${status}\n",
+			TimeFormat: "2006/01/02 15:04:05",
+		}))
+	}
 }
 
 func main() {
 	defer r.Close()
 
-	instanceID, err := GetInstanceID()
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	log.Printf("Listening on %s:%d\n", config.Host, config.Port+instanceID)
-	log.Fatal(app.Listen(fmt.Sprintf("%s:%d", config.Host, config.Port+instanceID)))
+	log.Printf("Listening on %s:%d\n", config.Host, config.Port)
+	log.Fatal(app.Listen(fmt.Sprintf("%s:%d", config.Host, config.Port)))
 }

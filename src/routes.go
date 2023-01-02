@@ -9,8 +9,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/mcstatus-io/mcutil"
 	"github.com/mcstatus-io/mcutil/options"
-	"github.com/mcstatus-io/shared/status"
-	"github.com/mcstatus-io/shared/util"
 )
 
 type SendVoteBody struct {
@@ -50,7 +48,7 @@ func JavaStatusHandler(ctx *fiber.Ctx) error {
 		return err
 	}
 
-	response, expiresAt, err := status.GetJavaStatus(r, host, port, config.Cache.JavaCacheDuration)
+	response, expiresAt, err := GetJavaStatus(host, port)
 
 	if err != nil {
 		return err
@@ -74,7 +72,7 @@ func BedrockStatusHandler(ctx *fiber.Ctx) error {
 		return err
 	}
 
-	response, expiresAt, err := status.GetBedrockStatus(r, host, port, config.Cache.BedrockCacheDuration)
+	response, expiresAt, err := GetBedrockStatus(host, port)
 
 	if err != nil {
 		return err
@@ -94,7 +92,7 @@ func IconHandler(ctx *fiber.Ctx) error {
 		return ctx.Status(http.StatusBadRequest).SendString("Invalid address value")
 	}
 
-	icon, expiresAt, err := status.GetServerIcon(r, host, port, config.Cache.IconCacheDuration)
+	icon, expiresAt, err := GetServerIcon(host, port)
 
 	if err != nil {
 		return err
@@ -108,7 +106,7 @@ func IconHandler(ctx *fiber.Ctx) error {
 }
 
 func DefaultIconHandler(ctx *fiber.Ctx) error {
-	return ctx.Type("png").Send(util.DefaultIconBytes)
+	return ctx.Type("png").Send(defaultIconBytes)
 }
 
 func SendVoteHandler(ctx *fiber.Ctx) error {
