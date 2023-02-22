@@ -4,32 +4,16 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/mcstatus-io/mcutil"
-	"github.com/mcstatus-io/mcutil/options"
 )
-
-type SendVoteBody struct {
-	Host     string `json:"host"`
-	Port     uint16 `json:"port"`
-	Username string `json:"username"`
-	Token    string `json:"token"`
-}
-
-type SendVoteResponse struct {
-	Success bool   `json:"success"`
-	Error   string `json:"error,omitempty"`
-}
 
 func init() {
 	app.Get("/ping", PingHandler)
 	app.Get("/status/java/:address", JavaStatusHandler)
 	app.Get("/status/bedrock/:address", BedrockStatusHandler)
-	app.Get("/icon/default", DefaultIconHandler)
+	app.Get("/icon", DefaultIconHandler)
 	app.Get("/icon/:address", IconHandler)
-	app.Post("/vote", SendVoteHandler)
 	app.Use(NotFoundHandler)
 }
 
@@ -107,32 +91,6 @@ func IconHandler(ctx *fiber.Ctx) error {
 
 func DefaultIconHandler(ctx *fiber.Ctx) error {
 	return ctx.Type("png").Send(defaultIconBytes)
-}
-
-func SendVoteHandler(ctx *fiber.Ctx) error {
-	var body SendVoteBody
-
-	if err := ctx.BodyParser(&body); err != nil {
-		return err
-	}
-
-	if err := mcutil.SendVote(body.Host, body.Port, options.Vote{
-		ServiceName: "mcstatus.io Vote Tester",
-		Username:    body.Username,
-		Token:       body.Token,
-		UUID:        "",
-		Timestamp:   time.Now(),
-		Timeout:     time.Second * 5,
-	}); err != nil {
-		return ctx.JSON(SendVoteResponse{
-			Success: false,
-			Error:   err.Error(),
-		})
-	}
-
-	return ctx.JSON(SendVoteResponse{
-		Success: true,
-	})
 }
 
 func NotFoundHandler(ctx *fiber.Ctx) error {
