@@ -1,9 +1,12 @@
 environment: production
 host: 127.0.0.1
 port: 3001
-redis: redis://127.0.0.1:6379/0
-cache:
-  enable: false
+redis:
+  host: 127.0.0.1
+  port: 6379
+  # username: myuser
+  # password: mypassword
+  database: 0
   java_cache_duration: 1m
   bedrock_cache_duration: 1m
   icon_cache_duration: 15m

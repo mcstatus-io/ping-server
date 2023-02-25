@@ -114,7 +114,11 @@ func GetJavaStatus(host string, port uint16) (*JavaStatusResponse, *time.Duratio
 		return &response, &ttl, err
 	}
 
-	response := FetchJavaStatus(host, port, config.Cache.JavaCacheDuration)
+	response, err := FetchJavaStatus(host, port)
+
+	if err != nil {
+		return nil, nil, err
+	}
 
 	data, err := json.Marshal(response)
 
@@ -122,7 +126,7 @@ func GetJavaStatus(host string, port uint16) (*JavaStatusResponse, *time.Duratio
 		return nil, nil, err
 	}
 
-	if err := r.Set(cacheKey, data, config.Cache.JavaCacheDuration); err != nil {
+	if err := r.Set(cacheKey, data, config.Redis.JavaCacheDuration); err != nil {
 		return nil, nil, err
 	}
 
@@ -156,7 +160,11 @@ func GetBedrockStatus(host string, port uint16) (*BedrockStatusResponse, *time.D
 		return &response, &ttl, err
 	}
 
-	response := FetchBedrockStatus(host, port, config.Cache.BedrockCacheDuration)
+	response, err := FetchBedrockStatus(host, port)
+
+	if err != nil {
+		return nil, nil, err
+	}
 
 	data, err := json.Marshal(response)
 
@@ -164,7 +172,7 @@ func GetBedrockStatus(host string, port uint16) (*BedrockStatusResponse, *time.D
 		return nil, nil, err
 	}
 
-	if err := r.Set(cacheKey, data, config.Cache.BedrockCacheDuration); err != nil {
+	if err := r.Set(cacheKey, data, config.Redis.BedrockCacheDuration); err != nil {
 		return nil, nil, err
 	}
 
@@ -192,7 +200,7 @@ func GetServerIcon(host string, port uint16) ([]byte, *time.Duration, error) {
 		return data, &ttl, err
 	}
 
-	icon := defaultIconBytes
+	icon := defaultIcon
 
 	status, err := mcutil.Status(host, port)
 
@@ -206,14 +214,20 @@ func GetServerIcon(host string, port uint16) ([]byte, *time.Duration, error) {
 		icon = data
 	}
 
-	if err := r.Set(cacheKey, icon, config.Cache.IconCacheDuration); err != nil {
+	if err := r.Set(cacheKey, icon, config.Redis.IconCacheDuration); err != nil {
 		return nil, nil, err
 	}
 
 	return icon, nil, nil
 }
 
-func FetchJavaStatus(host string, port uint16, ttl time.Duration) *JavaStatusResponse {
+func FetchJavaStatus(host string, port uint16) (*JavaStatusResponse, error) {
+	isEULABlocked, err := IsBlockedAddress(host)
+
+	if err != nil {
+		return nil, err
+	}
+
 	status, err := mcutil.Status(host, port)
 
 	if err != nil {
@@ -225,11 +239,11 @@ func FetchJavaStatus(host string, port uint16, ttl time.Duration) *JavaStatusRes
 					Online:      false,
 					Host:        host,
 					Port:        port,
-					EULABlocked: IsBlockedAddress(host),
+					EULABlocked: isEULABlocked,
 					RetrievedAt: time.Now().UnixMilli(),
-					ExpiresAt:   time.Now().Add(ttl).UnixMilli(),
+					ExpiresAt:   time.Now().Add(config.Redis.JavaCacheDuration).UnixMilli(),
 				},
-			}
+			}, nil
 		}
 
 		response := &JavaStatusResponse{
@@ -237,9 +251,9 @@ func FetchJavaStatus(host string, port uint16, ttl time.Duration) *JavaStatusRes
 				Online:      true,
 				Host:        host,
 				Port:        port,
-				EULABlocked: IsBlockedAddress(host),
+				EULABlocked: isEULABlocked,
 				RetrievedAt: time.Now().UnixMilli(),
-				ExpiresAt:   time.Now().Add(ttl).UnixMilli(),
+				ExpiresAt:   time.Now().Add(config.Redis.JavaCacheDuration).UnixMilli(),
 			},
 			JavaStatus: &JavaStatus{
 				Version: nil,
@@ -267,7 +281,7 @@ func FetchJavaStatus(host string, port uint16, ttl time.Duration) *JavaStatusRes
 			}
 		}
 
-		return response
+		return response, nil
 	}
 
 	playerList := make([]Player, 0)
@@ -299,9 +313,9 @@ func FetchJavaStatus(host string, port uint16, ttl time.Duration) *JavaStatusRes
 			Online:      true,
 			Host:        host,
 			Port:        port,
-			EULABlocked: IsBlockedAddress(host),
+			EULABlocked: isEULABlocked,
 			RetrievedAt: time.Now().UnixMilli(),
-			ExpiresAt:   time.Now().Add(ttl).UnixMilli(),
+			ExpiresAt:   time.Now().Add(config.Redis.JavaCacheDuration).UnixMilli(),
 		},
 		JavaStatus: &JavaStatus{
 			Version: &JavaVersion{
@@ -323,10 +337,16 @@ func FetchJavaStatus(host string, port uint16, ttl time.Duration) *JavaStatusRes
 			Icon: status.Favicon,
 			Mods: modList,
 		},
-	}
+	}, nil
 }
 
-func FetchBedrockStatus(host string, port uint16, ttl time.Duration) *BedrockStatusResponse {
+func FetchBedrockStatus(host string, port uint16) (*BedrockStatusResponse, error) {
+	isEULABlocked, err := IsBlockedAddress(host)
+
+	if err != nil {
+		return nil, err
+	}
+
 	status, err := mcutil.StatusBedrock(host, port)
 
 	if err != nil {
@@ -335,11 +355,11 @@ func FetchBedrockStatus(host string, port uint16, ttl time.Duration) *BedrockSta
 				Online:      false,
 				Host:        host,
 				Port:        port,
-				EULABlocked: IsBlockedAddress(host),
+				EULABlocked: isEULABlocked,
 				RetrievedAt: time.Now().UnixMilli(),
-				ExpiresAt:   time.Now().Add(ttl).UnixMilli(),
+				ExpiresAt:   time.Now().Add(config.Redis.BedrockCacheDuration).UnixMilli(),
 			},
-		}
+		}, nil
 	}
 
 	response := &BedrockStatusResponse{
@@ -347,9 +367,9 @@ func FetchBedrockStatus(host string, port uint16, ttl time.Duration) *BedrockSta
 			Online:      true,
 			Host:        host,
 			Port:        port,
-			EULABlocked: IsBlockedAddress(host),
+			EULABlocked: isEULABlocked,
 			RetrievedAt: time.Now().UnixMilli(),
-			ExpiresAt:   time.Now().Add(ttl).UnixMilli(),
+			ExpiresAt:   time.Now().Add(config.Redis.BedrockCacheDuration).UnixMilli(),
 		},
 		BedrockStatus: &BedrockStatus{
 			Version:  nil,
@@ -413,5 +433,5 @@ func FetchBedrockStatus(host string, port uint16, ttl time.Duration) *BedrockSta
 		}
 	}
 
-	return response
+	return response, nil
 }

@@ -29,19 +29,11 @@ func init() {
 		log.Fatal(err)
 	}
 
-	if config.Cache.Enable {
-		if err := r.Connect(config.Redis); err != nil {
-			log.Fatal(err)
-		}
-
-		log.Println("Successfully connected to Redis")
-	}
-
-	if err := GetBlockedServerList(); err != nil {
+	if err := r.Connect(); err != nil {
 		log.Fatal(err)
 	}
 
-	log.Println("Successfully retrieved EULA blocked servers")
+	log.Println("Successfully connected to Redis")
 
 	app.Use(recover.New())
 
@@ -61,6 +53,8 @@ func init() {
 
 func main() {
 	defer r.Close()
+
+	go StartBlockedServersGoroutine()
 
 	log.Printf("Listening on %s:%d\n", config.Host, config.Port)
 	log.Fatal(app.Listen(fmt.Sprintf("%s:%d", config.Host, config.Port)))

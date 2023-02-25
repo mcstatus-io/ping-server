@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -11,14 +12,13 @@ type Redis struct {
 	Client *redis.Client
 }
 
-func (r *Redis) Connect(uri string) error {
-	opts, err := redis.ParseURL(uri)
-
-	if err != nil {
-		return err
-	}
-
-	r.Client = redis.NewClient(opts)
+func (r *Redis) Connect() error {
+	r.Client = redis.NewClient(&redis.Options{
+		Addr:     fmt.Sprintf("%s:%d", config.Redis.Host, config.Redis.Port),
+		Username: config.Redis.Username,
+		Password: config.Redis.Password,
+		DB:       config.Redis.Database,
+	})
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 

@@ -90,7 +90,7 @@ func IconHandler(ctx *fiber.Ctx) error {
 }
 
 func DefaultIconHandler(ctx *fiber.Ctx) error {
-	return ctx.Type("png").Send(defaultIconBytes)
+	return ctx.Type("png").Send(defaultIcon)
 }
 
 func NotFoundHandler(ctx *fiber.Ctx) error {
