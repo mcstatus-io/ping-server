@@ -126,7 +126,7 @@ func GetJavaStatus(host string, port uint16) (*JavaStatusResponse, *time.Duratio
 		return nil, nil, err
 	}
 
-	if err := r.Set(cacheKey, data, config.Redis.JavaCacheDuration); err != nil {
+	if err := r.Set(cacheKey, data, config.Cache.JavaStatusDuration); err != nil {
 		return nil, nil, err
 	}
 
@@ -172,7 +172,7 @@ func GetBedrockStatus(host string, port uint16) (*BedrockStatusResponse, *time.D
 		return nil, nil, err
 	}
 
-	if err := r.Set(cacheKey, data, config.Redis.BedrockCacheDuration); err != nil {
+	if err := r.Set(cacheKey, data, config.Cache.BedrockStatusDuration); err != nil {
 		return nil, nil, err
 	}
 
@@ -214,7 +214,7 @@ func GetServerIcon(host string, port uint16) ([]byte, *time.Duration, error) {
 		icon = data
 	}
 
-	if err := r.Set(cacheKey, icon, config.Redis.IconCacheDuration); err != nil {
+	if err := r.Set(cacheKey, icon, config.Cache.IconDuration); err != nil {
 		return nil, nil, err
 	}
 
@@ -222,12 +222,6 @@ func GetServerIcon(host string, port uint16) ([]byte, *time.Duration, error) {
 }
 
 func FetchJavaStatus(host string, port uint16) (*JavaStatusResponse, error) {
-	isEULABlocked, err := IsBlockedAddress(host)
-
-	if err != nil {
-		return nil, err
-	}
-
 	status, err := mcutil.Status(host, port)
 
 	if err != nil {
@@ -239,9 +233,9 @@ func FetchJavaStatus(host string, port uint16) (*JavaStatusResponse, error) {
 					Online:      false,
 					Host:        host,
 					Port:        port,
-					EULABlocked: isEULABlocked,
+					EULABlocked: IsBlockedAddress(host),
 					RetrievedAt: time.Now().UnixMilli(),
-					ExpiresAt:   time.Now().Add(config.Redis.JavaCacheDuration).UnixMilli(),
+					ExpiresAt:   time.Now().Add(config.Cache.JavaStatusDuration).UnixMilli(),
 				},
 			}, nil
 		}
@@ -251,9 +245,9 @@ func FetchJavaStatus(host string, port uint16) (*JavaStatusResponse, error) {
 				Online:      true,
 				Host:        host,
 				Port:        port,
-				EULABlocked: isEULABlocked,
+				EULABlocked: IsBlockedAddress(host),
 				RetrievedAt: time.Now().UnixMilli(),
-				ExpiresAt:   time.Now().Add(config.Redis.JavaCacheDuration).UnixMilli(),
+				ExpiresAt:   time.Now().Add(config.Cache.JavaStatusDuration).UnixMilli(),
 			},
 			JavaStatus: &JavaStatus{
 				Version: nil,
@@ -313,9 +307,9 @@ func FetchJavaStatus(host string, port uint16) (*JavaStatusResponse, error) {
 			Online:      true,
 			Host:        host,
 			Port:        port,
-			EULABlocked: isEULABlocked,
+			EULABlocked: IsBlockedAddress(host),
 			RetrievedAt: time.Now().UnixMilli(),
-			ExpiresAt:   time.Now().Add(config.Redis.JavaCacheDuration).UnixMilli(),
+			ExpiresAt:   time.Now().Add(config.Cache.JavaStatusDuration).UnixMilli(),
 		},
 		JavaStatus: &JavaStatus{
 			Version: &JavaVersion{
@@ -341,12 +335,6 @@ func FetchJavaStatus(host string, port uint16) (*JavaStatusResponse, error) {
 }
 
 func FetchBedrockStatus(host string, port uint16) (*BedrockStatusResponse, error) {
-	isEULABlocked, err := IsBlockedAddress(host)
-
-	if err != nil {
-		return nil, err
-	}
-
 	status, err := mcutil.StatusBedrock(host, port)
 
 	if err != nil {
@@ -355,9 +343,9 @@ func FetchBedrockStatus(host string, port uint16) (*BedrockStatusResponse, error
 				Online:      false,
 				Host:        host,
 				Port:        port,
-				EULABlocked: isEULABlocked,
+				EULABlocked: IsBlockedAddress(host),
 				RetrievedAt: time.Now().UnixMilli(),
-				ExpiresAt:   time.Now().Add(config.Redis.BedrockCacheDuration).UnixMilli(),
+				ExpiresAt:   time.Now().Add(config.Cache.BedrockStatusDuration).UnixMilli(),
 			},
 		}, nil
 	}
@@ -367,9 +355,9 @@ func FetchBedrockStatus(host string, port uint16) (*BedrockStatusResponse, error
 			Online:      true,
 			Host:        host,
 			Port:        port,
-			EULABlocked: isEULABlocked,
+			EULABlocked: IsBlockedAddress(host),
 			RetrievedAt: time.Now().UnixMilli(),
-			ExpiresAt:   time.Now().Add(config.Redis.BedrockCacheDuration).UnixMilli(),
+			ExpiresAt:   time.Now().Add(config.Cache.BedrockStatusDuration).UnixMilli(),
 		},
 		BedrockStatus: &BedrockStatus{
 			Version:  nil,

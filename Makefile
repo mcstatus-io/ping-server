@@ -13,4 +13,4 @@ run:
 flush-cache:
 	go run src/*.go --flush-cache
 
-all: build
+build: build

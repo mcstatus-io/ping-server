@@ -8,19 +8,15 @@ import (
 )
 
 type Config struct {
-	Environment string `yaml:"environment"`
-	Host        string `yaml:"host"`
-	Port        uint16 `yaml:"port"`
-	Redis       struct {
-		Host                 string        `yaml:"host"`
-		Port                 uint16        `yaml:"port"`
-		Username             string        `yaml:"username"`
-		Password             string        `yaml:"password"`
-		Database             int           `yaml:"database"`
-		JavaCacheDuration    time.Duration `yaml:"java_cache_duration"`
-		BedrockCacheDuration time.Duration `yaml:"bedrock_cache_duration"`
-		IconCacheDuration    time.Duration `yaml:"icon_cache_duration"`
-	} `yaml:"redis"`
+	Environment string  `yaml:"environment"`
+	Host        string  `yaml:"host"`
+	Port        uint16  `yaml:"port"`
+	Redis       *string `yaml:"redis"`
+	Cache       struct {
+		JavaStatusDuration    time.Duration `yaml:"java_status_duration"`
+		BedrockStatusDuration time.Duration `yaml:"bedrock_status_duration"`
+		IconDuration          time.Duration `yaml:"icon_duration"`
+	} `yaml:"cache"`
 }
 
 func (c *Config) ReadFile(file string) error {

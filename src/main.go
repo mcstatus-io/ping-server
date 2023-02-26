@@ -29,11 +29,19 @@ func init() {
 		log.Fatal(err)
 	}
 
-	if err := r.Connect(); err != nil {
+	if err := GetBlockedServerList(); err != nil {
 		log.Fatal(err)
 	}
 
-	log.Println("Successfully connected to Redis")
+	log.Println("Successfully retrieved EULA blocked servers")
+
+	if config.Redis != nil {
+		if err := r.Connect(); err != nil {
+			log.Fatal(err)
+		}
+
+		log.Println("Successfully connected to Redis")
+	}
 
 	app.Use(recover.New())
 
@@ -41,11 +49,11 @@ func init() {
 		app.Use(cors.New(cors.Config{
 			AllowOrigins:  "*",
 			AllowMethods:  "HEAD,OPTIONS,GET",
-			ExposeHeaders: "Content-Type,X-Cache-Time-Remaining",
+			ExposeHeaders: "X-Cache-Time-Remaining",
 		}))
 
 		app.Use(logger.New(logger.Config{
-			Format:     "${time} ${ip}:${port} -> ${method} ${path} -> ${status}\n",
+			Format:     "${time} ${ip}:${port} -> ${status}: ${method} ${path} (${latency})\n",
 			TimeFormat: "2006/01/02 15:04:05",
 		}))
 	}
@@ -53,8 +61,6 @@ func init() {
 
 func main() {
 	defer r.Close()
-
-	go StartBlockedServersGoroutine()
 
 	log.Printf("Listening on %s:%d\n", config.Host, config.Port)
 	log.Fatal(app.Listen(fmt.Sprintf("%s:%d", config.Host, config.Port)))

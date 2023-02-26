@@ -18,7 +18,7 @@ The REST server that powers the API for mcstatus.io. This repository is open sou
     - `go get ...`
 4. Build the executable
     - Using GNU make
-        - `make build`
+        - `make`
     - Without GNU make
         - `go build -o .\bin\main.exe .\src\*.go` (Windows)
         - `go build -o bin/main src/*.go` (Unix)

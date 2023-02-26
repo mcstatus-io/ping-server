@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -13,12 +12,13 @@ type Redis struct {
 }
 
 func (r *Redis) Connect() error {
-	r.Client = redis.NewClient(&redis.Options{
-		Addr:     fmt.Sprintf("%s:%d", config.Redis.Host, config.Redis.Port),
-		Username: config.Redis.Username,
-		Password: config.Redis.Password,
-		DB:       config.Redis.Database,
-	})
+	opts, err := redis.ParseURL(*config.Redis)
+
+	if err != nil {
+		return err
+	}
+
+	r.Client = redis.NewClient(opts)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 

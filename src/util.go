@@ -5,20 +5,69 @@ import (
 	_ "embed"
 	"encoding/hex"
 	"fmt"
+	"io"
+	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 var (
 	//go:embed icon.png
 	defaultIcon     []byte
-	ipAddressRegExp *regexp.Regexp = regexp.MustCompile(`^\d{1,3}(\.\d{1,3}){3}$`)
+	blockedServers  *MutexArray[string] = nil
+	ipAddressRegExp *regexp.Regexp      = regexp.MustCompile(`^\d{1,3}(\.\d{1,3}){3}$`)
 )
 
-func IsBlockedAddress(address string) (bool, error) {
-	split := strings.Split(strings.ToLower(address), ".")
+type MutexArray[K comparable] struct {
+	List  []K
+	Mutex *sync.Mutex
+}
 
+func (m *MutexArray[K]) Has(value K) bool {
+	m.Mutex.Lock()
+
+	defer m.Mutex.Unlock()
+
+	for _, v := range m.List {
+		if v == value {
+			return true
+		}
+	}
+
+	return false
+}
+
+func GetBlockedServerList() error {
+	resp, err := http.Get("https://sessionserver.mojang.com/blockedservers")
+
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+
+	if err != nil {
+		return err
+	}
+
+	blockedServers = &MutexArray[string]{
+		List:  strings.Split(string(body), "\n"),
+		Mutex: &sync.Mutex{},
+	}
+
+	return nil
+}
+
+func IsBlockedAddress(address string) bool {
+	split := strings.Split(strings.ToLower(address), ".")
 	isIPAddress := ipAddressRegExp.MatchString(address)
 
 	for k := range split {
@@ -44,19 +93,14 @@ func IsBlockedAddress(address string) (bool, error) {
 		}
 
 		newAddressBytes := sha1.Sum([]byte(newAddress))
+		newAddressHash := hex.EncodeToString(newAddressBytes[:])
 
-		exists, err := r.Exists(fmt.Sprintf("blocked:%s", hex.EncodeToString(newAddressBytes[:])))
-
-		if err != nil {
-			return false, err
-		}
-
-		if exists {
-			return true, nil
+		if blockedServers.Has(newAddressHash) {
+			return true
 		}
 	}
 
-	return false, nil
+	return false
 }
 
 func ParseAddress(address string, defaultPort uint16) (string, uint16, error) {
