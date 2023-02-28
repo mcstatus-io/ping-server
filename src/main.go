@@ -49,7 +49,7 @@ func init() {
 		app.Use(cors.New(cors.Config{
 			AllowOrigins:  "*",
 			AllowMethods:  "HEAD,OPTIONS,GET",
-			ExposeHeaders: "X-Cache-Time-Remaining",
+			ExposeHeaders: "X-Cache-Hit,X-Cache-Time-Remaining",
 		}))
 
 		app.Use(logger.New(logger.Config{
