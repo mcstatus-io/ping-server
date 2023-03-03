@@ -43,7 +43,9 @@ func init() {
 		log.Println("Successfully connected to Redis")
 	}
 
-	app.Use(recover.New())
+	app.Use(recover.New(recover.Config{
+		EnableStackTrace: true,
+	}))
 
 	if config.Environment == "development" {
 		app.Use(cors.New(cors.Config{
