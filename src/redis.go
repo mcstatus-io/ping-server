@@ -27,78 +27,31 @@ func (r *Redis) Connect() error {
 	return r.Client.Ping(ctx).Err()
 }
 
-func (r *Redis) Exists(key string) (bool, error) {
+func (r *Redis) Get(key string) ([]byte, time.Duration, error) {
 	if r.Client == nil {
-		return false, nil
+		return nil, 0, nil
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 
 	defer cancel()
 
-	res := r.Client.Exists(ctx, key)
+	p := r.Client.Pipeline()
 
-	if err := res.Err(); err != nil {
-		return false, err
+	value := p.Get(ctx, key)
+	ttl := p.TTL(ctx, key)
+
+	if _, err := p.Exec(ctx); err != nil {
+		if err == redis.Nil {
+			return nil, 0, nil
+		}
+
+		return nil, 0, err
 	}
 
-	val, err := res.Result()
+	data, err := value.Bytes()
 
-	return val == 1, err
-}
-
-func (r *Redis) TTL(key string) (time.Duration, error) {
-	if r.Client == nil {
-		return 0, nil
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-
-	defer cancel()
-
-	res := r.Client.TTL(ctx, key)
-
-	if err := res.Err(); err != nil {
-		return 0, err
-	}
-
-	return res.Result()
-}
-
-func (r *Redis) GetString(key string) (string, error) {
-	if r.Client == nil {
-		return "", nil
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-
-	defer cancel()
-
-	res := r.Client.Get(ctx, key)
-
-	if err := res.Err(); err != nil {
-		return "", nil
-	}
-
-	return res.Result()
-}
-
-func (r *Redis) GetBytes(key string) ([]byte, error) {
-	if r.Client == nil {
-		return nil, nil
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-
-	defer cancel()
-
-	res := r.Client.Get(ctx, key)
-
-	if err := res.Err(); err != nil {
-		return nil, err
-	}
-
-	return res.Bytes()
+	return data, ttl.Val(), err
 }
 
 func (r *Redis) Set(key string, value interface{}, ttl time.Duration) error {

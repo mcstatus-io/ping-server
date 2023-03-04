@@ -87,117 +87,89 @@ type Mod struct {
 	Version string `json:"version"`
 }
 
-func GetJavaStatus(host string, port uint16) (*JavaStatusResponse, *time.Duration, error) {
+func GetJavaStatus(host string, port uint16) (*JavaStatusResponse, time.Duration, error) {
 	cacheKey := fmt.Sprintf("java:%s-%d", host, port)
 
-	exists, err := r.Exists(cacheKey)
+	cache, ttl, err := r.Get(cacheKey)
 
 	if err != nil {
-		return nil, nil, err
+		return nil, 0, err
 	}
 
-	if exists {
-		data, err := r.GetBytes(cacheKey)
-
-		if err != nil {
-			return nil, nil, err
-		}
-
+	if cache != nil {
 		var response JavaStatusResponse
 
-		if err = json.Unmarshal(data, &response); err != nil {
-			return nil, nil, err
-		}
+		err = json.Unmarshal(cache, &response)
 
-		ttl, err := r.TTL(cacheKey)
-
-		return &response, &ttl, err
+		return &response, ttl, err
 	}
 
 	response, err := FetchJavaStatus(host, port)
 
 	if err != nil {
-		return nil, nil, err
+		return nil, 0, err
 	}
 
 	data, err := json.Marshal(response)
 
 	if err != nil {
-		return nil, nil, err
+		return nil, 0, err
 	}
 
 	if err := r.Set(cacheKey, data, config.Cache.JavaStatusDuration); err != nil {
-		return nil, nil, err
+		return nil, 0, err
 	}
 
-	return response, nil, nil
+	return response, 0, nil
 }
 
-func GetBedrockStatus(host string, port uint16) (*BedrockStatusResponse, *time.Duration, error) {
+func GetBedrockStatus(host string, port uint16) (*BedrockStatusResponse, time.Duration, error) {
 	cacheKey := fmt.Sprintf("bedrock:%s-%d", host, port)
 
-	exists, err := r.Exists(cacheKey)
+	cache, ttl, err := r.Get(cacheKey)
 
 	if err != nil {
-		return nil, nil, err
+		return nil, 0, err
 	}
 
-	if exists {
-		data, err := r.GetBytes(cacheKey)
-
-		if err != nil {
-			return nil, nil, err
-		}
-
+	if cache != nil {
 		var response BedrockStatusResponse
 
-		if err = json.Unmarshal(data, &response); err != nil {
-			return nil, nil, err
-		}
+		err = json.Unmarshal(cache, &response)
 
-		ttl, err := r.TTL(cacheKey)
-
-		return &response, &ttl, err
+		return &response, ttl, err
 	}
 
 	response, err := FetchBedrockStatus(host, port)
 
 	if err != nil {
-		return nil, nil, err
+		return nil, 0, err
 	}
 
 	data, err := json.Marshal(response)
 
 	if err != nil {
-		return nil, nil, err
+		return nil, 0, err
 	}
 
 	if err := r.Set(cacheKey, data, config.Cache.BedrockStatusDuration); err != nil {
-		return nil, nil, err
+		return nil, 0, err
 	}
 
-	return response, nil, nil
+	return response, 0, nil
 }
 
-func GetServerIcon(host string, port uint16) ([]byte, *time.Duration, error) {
+func GetServerIcon(host string, port uint16) ([]byte, time.Duration, error) {
 	cacheKey := fmt.Sprintf("icon:%s-%d", host, port)
 
-	exists, err := r.Exists(cacheKey)
+	cache, ttl, err := r.Get(cacheKey)
 
 	if err != nil {
-		return nil, nil, err
+		return nil, 0, err
 	}
 
-	if exists {
-		data, err := r.GetBytes(cacheKey)
-
-		if err != nil {
-			return nil, nil, err
-		}
-
-		ttl, err := r.TTL(cacheKey)
-
-		return data, &ttl, err
+	if cache != nil {
+		return cache, ttl, err
 	}
 
 	icon := defaultIcon
@@ -208,17 +180,17 @@ func GetServerIcon(host string, port uint16) ([]byte, *time.Duration, error) {
 		data, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(*status.Favicon, "data:image/png;base64,"))
 
 		if err != nil {
-			return nil, nil, err
+			return nil, 0, err
 		}
 
 		icon = data
 	}
 
 	if err := r.Set(cacheKey, icon, config.Cache.IconDuration); err != nil {
-		return nil, nil, err
+		return nil, 0, err
 	}
 
-	return icon, nil, nil
+	return icon, 0, nil
 }
 
 func FetchJavaStatus(host string, port uint16) (*JavaStatusResponse, error) {

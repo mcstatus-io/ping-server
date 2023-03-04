@@ -38,9 +38,9 @@ func JavaStatusHandler(ctx *fiber.Ctx) error {
 		return err
 	}
 
-	ctx.Set("X-Cache-Hit", strconv.FormatBool(expiresAt != nil))
+	ctx.Set("X-Cache-Hit", strconv.FormatBool(expiresAt != 0))
 
-	if expiresAt != nil {
+	if expiresAt != 0 {
 		ctx.Set("X-Cache-Time-Remaining", strconv.Itoa(int(expiresAt.Seconds())))
 	}
 
@@ -64,9 +64,9 @@ func BedrockStatusHandler(ctx *fiber.Ctx) error {
 		return err
 	}
 
-	ctx.Set("X-Cache-Hit", strconv.FormatBool(expiresAt != nil))
+	ctx.Set("X-Cache-Hit", strconv.FormatBool(expiresAt != 0))
 
-	if expiresAt != nil {
+	if expiresAt != 0 {
 		ctx.Set("X-Cache-Time-Remaining", strconv.Itoa(int(expiresAt.Seconds())))
 	}
 
@@ -86,9 +86,9 @@ func IconHandler(ctx *fiber.Ctx) error {
 		return err
 	}
 
-	ctx.Set("X-Cache-Hit", strconv.FormatBool(expiresAt != nil))
+	ctx.Set("X-Cache-Hit", strconv.FormatBool(expiresAt != 0))
 
-	if expiresAt != nil {
+	if expiresAt != 0 {
 		ctx.Set("X-Cache-Time-Remaining", strconv.Itoa(int(expiresAt.Seconds())))
 	}
 
