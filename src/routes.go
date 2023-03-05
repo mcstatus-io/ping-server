@@ -10,6 +10,7 @@ import (
 
 func init() {
 	app.Get("/ping", PingHandler)
+	app.Get("/statistics", StatisticsHandler)
 	app.Get("/status/java/:address", JavaStatusHandler)
 	app.Get("/status/bedrock/:address", BedrockStatusHandler)
 	app.Get("/icon", DefaultIconHandler)
@@ -17,8 +18,18 @@ func init() {
 	app.Use(NotFoundHandler)
 }
 
+type StatisticsResponse struct {
+	Cache CacheConfig `json:"cache"`
+}
+
 func PingHandler(ctx *fiber.Ctx) error {
 	return ctx.SendStatus(http.StatusOK)
+}
+
+func StatisticsHandler(ctx *fiber.Ctx) error {
+	return ctx.JSON(StatisticsResponse{
+		Cache: config.Cache,
+	})
 }
 
 func JavaStatusHandler(ctx *fiber.Ctx) error {
