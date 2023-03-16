@@ -1,5 +1,11 @@
-# API Server
-The REST server that powers the API for mcstatus.io. This repository is open source to allow developers to run their own Minecraft server status API server.
+# Ping Server
+The status retrieval/ping server that powers the API for mcstatus.io. This repository is open source to allow developers to run their own Minecraft server status API server.
+
+If you do not know what you are doing, or think that the cache durations enforced on our official website are tolerable, I would highly recommend using the official API instead. It is much more reliable and reduces the complexity of hosting it yourself.
+
+## Official API Documentation
+
+https://mcstatus.io/docs
 
 ## Requirements
 
@@ -11,9 +17,9 @@ The REST server that powers the API for mcstatus.io. This repository is open sou
 ## Installation
 
 1. Clone the repository to a folder
-    - `git clone https://github.com/mcstatus-io/api-server.git`
+    - `git clone https://github.com/mcstatus-io/ping-server.git`
 2. Move the working directory into the folder
-    - `cd api-server`
+    - `cd ping-server`
 3. Install all required dependencies
     - `go get ...`
 4. Build the executable
@@ -29,5 +35,4 @@ The REST server that powers the API for mcstatus.io. This repository is open sou
 
 ## License
 
-[MIT License](https://github.com/mcstatus-io/api-server/blob/main/LICENSE)
-        
+[MIT License](https://github.com/mcstatus-io/ping-server/blob/main/LICENSE)
