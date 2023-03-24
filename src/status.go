@@ -215,24 +215,38 @@ func fetchJavaStatus(host string, port uint16) (*JavaStatusResponse, error) {
 	}
 
 	response := &JavaStatusResponse{
-		Online:       true,
-		IP:           host,
-		Port:         port,
-		Motd:         status.Description,
-		Players:      status.Players.Online,
-		MaxPlayers:   status.Players.Max,
-		Version:      status.Version.Name,
-		Protocol:     status.Version.Protocol,
-		Software:     "unknown",
+		StatusResponse: StatusResponse{
+			Online: true,
+			Host:   host,
+			Port:   port,
+		},
+		JavaStatus: &JavaStatus{
+			MOTD: MOTD{
+				Raw:   status.Description.Text,
+				Clean: status.Description.Text, // Adjust if you want to remove color codes
+				HTML:  "",                       // Adjust if you want to generate HTML from the description
+			},
+			Players: JavaPlayers{
+				Online: status.Players.Online,
+				Max:    status.Players.Max,
+			},
+			Version: &JavaVersion{
+				NameRaw:   status.Version.Name,
+				NameClean: status.Version.Name, // Adjust if you want to remove color codes
+				NameHTML:  "",                  // Adjust if you want to generate HTML from the version name
+				Protocol:  status.Version.Protocol,
+			},
+		},
 	}
 
 	if status.Favicon != nil {
-		response.Icon = *status.Favicon
+		response.JavaStatus.Icon = status.Favicon
 	}
 
 	return response, nil
 }
 
+// fetchBedrockStatus fetches the Bedrock Edition server status without using the cache.
 // fetchBedrockStatus fetches the Bedrock Edition server status without using the cache.
 func fetchBedrockStatus(host string, port uint16) (*BedrockStatusResponse, error) {
 	status, err := mcutil.StatusBedrock(host, port)
@@ -241,17 +255,27 @@ func fetchBedrockStatus(host string, port uint16) (*BedrockStatusResponse, error
 	}
 
 	response := &BedrockStatusResponse{
-		Online:       true,
-		IP:           host,
-		Port:         port,
-		Motd:         status.Motd,
-		Players:      status.Players.Online,
-		MaxPlayers:   status.Players.Max,
-		Version:      status.Version,
-		Protocol:     status.ProtocolVersion,
-		Software:     "unknown",
+		StatusResponse: StatusResponse{
+			Online: true,
+			Host:   host,
+			Port:   port,
+		},
+		BedrockStatus: &BedrockStatus{
+			Version: &BedrockVersion{
+				Name:     status.Version,
+				Protocol: status.ProtocolVersion,
+			},
+			Players: &BedrockPlayers{
+				Online: status.Players.Online,
+				Max:    status.Players.Max,
+			},
+			MOTD: &MOTD{
+				Raw:   status.Motd,
+				Clean: status.Motd, // Adjust if you want to remove color codes
+				HTML:  "",          // Adjust if you want to generate HTML from the motd
+			},
+		},
 	}
 
 	return response, nil
 }
-

@@ -1,0 +1,36 @@
+# Build stage
+FROM golang:latest AS build
+
+# Install required dependencies
+RUN apt-get update && \
+    apt-get install -y make git
+
+# Set the working directory
+WORKDIR /go/api-server
+
+# Clone the repository and copy the source code
+RUN git clone https://github.com/mcstatus-io/api-server.git . && \
+    go mod download
+
+# Build the executable with CGO disabled
+RUN CGO_ENABLED=0 go build -o bin/main src/*.go
+
+# Copy the configuration file
+RUN cp config.example.yml ./bin/config.yml
+
+#######################
+# Runtime stage
+FROM gcr.io/distroless/base
+
+# Set the working directory
+WORKDIR /app
+
+# Copy the binary and configuration file from the build stage
+COPY --from=build /go/api-server/bin/main /app/main
+COPY --from=build /go/api-server/bin/config.yml /app/config.yml
+
+# Expose the port the app runs on (replace with your desired port)
+EXPOSE 3001
+
+# Run the app
+CMD ["./main"]

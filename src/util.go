@@ -16,18 +16,18 @@ import (
 var (
 	//go:embed icon.png
 	defaultIcon    []byte
-	blockedServers *MutexArray[string] = nil
-	ipAddressRegex *regexp.Regexp      = regexp.MustCompile(`^\d{1,3}(\.\d{1,3}){3}$`)
+	blockedServers *MutexArray = nil
+	ipAddressRegex *regexp.Regexp = regexp.MustCompile(`^\d{1,3}(\.\d{1,3}){3}$`)
 )
 
 // MutexArray is a thread-safe array for storing and checking values.
-type MutexArray[K comparable] struct {
-	List  []K
+type MutexArray struct {
+	List  []interface{}
 	Mutex *sync.Mutex
 }
 
 // Has checks if the given value is present in the array.
-func (m *MutexArray[K]) Has(value K) bool {
+func (m *MutexArray) Has(value interface{}) bool {
 	m.Mutex.Lock()
 	defer m.Mutex.Unlock()
 
@@ -39,6 +39,8 @@ func (m *MutexArray[K]) Has(value K) bool {
 
 	return false
 }
+
+
 
 // GetBlockedServerList fetches the list of blocked servers from Mojang's session server.
 func GetBlockedServerList() error {
@@ -58,13 +60,14 @@ func GetBlockedServerList() error {
 		return err
 	}
 
-	blockedServers = &MutexArray[string]{
+	blockedServers = &MutexArray{
 		List:  strings.Split(string(body), "\n"),
 		Mutex: &sync.Mutex{},
 	}
 
 	return nil
 }
+
 
 // IsBlockedAddress checks if the given address is in the blocked servers list.
 func IsBlockedAddress(address string) bool {
