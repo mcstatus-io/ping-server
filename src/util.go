@@ -15,19 +15,20 @@ import (
 
 var (
 	//go:embed icon.png
-	defaultIcon     []byte
-	blockedServers  *MutexArray[string] = nil
-	ipAddressRegExp *regexp.Regexp      = regexp.MustCompile(`^\d{1,3}(\.\d{1,3}){3}$`)
+	defaultIcon    []byte
+	blockedServers *MutexArray[string] = nil
+	ipAddressRegex *regexp.Regexp      = regexp.MustCompile(`^\d{1,3}(\.\d{1,3}){3}$`)
 )
 
+// MutexArray is a thread-safe array for storing and checking values.
 type MutexArray[K comparable] struct {
 	List  []K
 	Mutex *sync.Mutex
 }
 
+// Has checks if the given value is present in the array.
 func (m *MutexArray[K]) Has(value K) bool {
 	m.Mutex.Lock()
-
 	defer m.Mutex.Unlock()
 
 	for _, v := range m.List {
@@ -39,9 +40,9 @@ func (m *MutexArray[K]) Has(value K) bool {
 	return false
 }
 
+// GetBlockedServerList fetches the list of blocked servers from Mojang's session server.
 func GetBlockedServerList() error {
 	resp, err := http.Get("https://sessionserver.mojang.com/blockedservers")
-
 	if err != nil {
 		return err
 	}
@@ -53,7 +54,6 @@ func GetBlockedServerList() error {
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
-
 	if err != nil {
 		return err
 	}
@@ -66,29 +66,22 @@ func GetBlockedServerList() error {
 	return nil
 }
 
+// IsBlockedAddress checks if the given address is in the blocked servers list.
 func IsBlockedAddress(address string) bool {
 	split := strings.Split(strings.ToLower(address), ".")
-	isIPAddress := ipAddressRegExp.MatchString(address)
+	isIPAddress := ipAddressRegex.MatchString(address)
 
 	for k := range split {
-		newAddress := ""
+		var newAddress string
 
 		switch k {
 		case 0:
-			{
-				newAddress = strings.Join(split, ".")
-
-				break
-			}
+			newAddress = strings.Join(split, ".")
 		default:
-			{
-				if isIPAddress {
-					newAddress = fmt.Sprintf("%s.*", strings.Join(split[0:len(split)-k], "."))
-				} else {
-					newAddress = fmt.Sprintf("*.%s", strings.Join(split[k:], "."))
-				}
-
-				break
+			if isIPAddress {
+				newAddress = fmt.Sprintf("%s.*", strings.Join(split[0:len(split)-k], "."))
+			} else {
+				newAddress = fmt.Sprintf("*.%s", strings.Join(split[k:], "."))
 			}
 		}
 
@@ -103,6 +96,7 @@ func IsBlockedAddress(address string) bool {
 	return false
 }
 
+// ParseAddress extracts the hostname and port from the given address string, and returns the default port if none is provided.
 func ParseAddress(address string, defaultPort uint16) (string, uint16, error) {
 	result := strings.SplitN(address, ":", 2)
 
@@ -115,7 +109,6 @@ func ParseAddress(address string, defaultPort uint16) (string, uint16, error) {
 	}
 
 	port, err := strconv.ParseUint(result[1], 10, 16)
-
 	if err != nil {
 		return "", 0, err
 	}

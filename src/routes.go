@@ -18,20 +18,24 @@ func init() {
 	app.Use(NotFoundHandler)
 }
 
+// StatisticsResponse is the structure for the response of the statistics route.
 type StatisticsResponse struct {
 	Cache CacheConfig `json:"cache"`
 }
 
+// PingHandler responds with a 200 OK status for simple health checks.
 func PingHandler(ctx *fiber.Ctx) error {
 	return ctx.SendStatus(http.StatusOK)
 }
 
+// StatisticsHandler returns the cache configuration in the response.
 func StatisticsHandler(ctx *fiber.Ctx) error {
 	return ctx.JSON(StatisticsResponse{
 		Cache: config.Cache,
 	})
 }
 
+// JavaStatusHandler returns the status of the Java edition Minecraft server specified in the address parameter.
 func JavaStatusHandler(ctx *fiber.Ctx) error {
 	host, port, err := ParseAddress(ctx.Params("address"), 25565)
 
@@ -58,6 +62,7 @@ func JavaStatusHandler(ctx *fiber.Ctx) error {
 	return ctx.JSON(response)
 }
 
+// BedrockStatusHandler returns the status of the Bedrock edition Minecraft server specified in the address parameter.
 func BedrockStatusHandler(ctx *fiber.Ctx) error {
 	host, port, err := ParseAddress(ctx.Params("address"), 19132)
 
@@ -84,6 +89,7 @@ func BedrockStatusHandler(ctx *fiber.Ctx) error {
 	return ctx.JSON(response)
 }
 
+// IconHandler returns the server icon for the specified Java edition Minecraft server.
 func IconHandler(ctx *fiber.Ctx) error {
 	host, port, err := ParseAddress(ctx.Params("address"), 25565)
 
@@ -106,10 +112,12 @@ func IconHandler(ctx *fiber.Ctx) error {
 	return ctx.Type("png").Send(icon)
 }
 
+// DefaultIconHandler returns the default server icon.
 func DefaultIconHandler(ctx *fiber.Ctx) error {
 	return ctx.Type("png").Send(defaultIcon)
 }
 
+// NotFoundHandler handles requests to routes that do not exist and returns a 404 Not Found status.
 func NotFoundHandler(ctx *fiber.Ctx) error {
 	return ctx.SendStatus(http.StatusNotFound)
 }

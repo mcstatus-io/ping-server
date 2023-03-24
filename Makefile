@@ -1,14 +1,37 @@
-build:
-	go build -o bin/main src/*.go
+# Variables
+BINARY := bin/main
+SOURCES := $(wildcard src/*.go)
 
-build-linux:
-	GOOS=linux go build -o bin/main src/*.go
+# Build for the current platform
+build: $(BINARY)
 
-build-windows:
-	GOOS=windows go build -o bin/main src/*.go
+$(BINARY): $(SOURCES)
+	go build -o $(BINARY) $(SOURCES)
 
-run:
-	go run src/*.go
+# Build for Linux
+build-linux: GOOS := linux
+build-linux: EXTENSION := 
+build-linux: build-cross
 
-flush-cache:
-	go run src/*.go --flush-cache
+# Build for Windows
+build-windows: GOOS := windows
+build-windows: EXTENSION := .exe
+build-windows: build-cross
+
+# Cross-compile for a specific platform (used by build-linux and build-windows)
+build-cross: export GOOS := $(GOOS)
+build-cross: BINARY := $(BINARY)$(EXTENSION)
+build-cross: $(BINARY)
+
+# Run the application
+run: build
+	./$(BINARY)
+
+# Flush cache
+flush-cache: build
+	./$(BINARY) --flush-cache
+
+# Clean up generated files
+.PHONY: clean
+clean:
+	rm -f $(BINARY) $(BINARY).exe
