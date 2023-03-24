@@ -6,12 +6,12 @@ services:
     image: ping-server
     ports:
       - "3001:3001"
-    environment:
-      - REDIS_HOST=redis
     depends_on:
       - redis
     networks:
       - app_network
+    environment:
+      REDIS_URL: "redis://redis:6379" # Define the Redis URL using the hostname of the Redis service
     volumes:
       - type: bind
         source: ./config.example.yml

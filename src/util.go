@@ -60,13 +60,21 @@ func GetBlockedServerList() error {
 		return err
 	}
 
+	// Convert []string to []interface{}
+	strSlice := strings.Split(string(body), "\n")
+	interfaceSlice := make([]interface{}, len(strSlice))
+	for i, v := range strSlice {
+		interfaceSlice[i] = v
+	}
+
 	blockedServers = &MutexArray{
-		List:  strings.Split(string(body), "\n"),
+		List:  interfaceSlice,
 		Mutex: &sync.Mutex{},
 	}
 
 	return nil
 }
+
 
 
 // IsBlockedAddress checks if the given address is in the blocked servers list.

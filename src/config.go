@@ -56,6 +56,9 @@ func (c *Config) overrideWithEnvVars() error {
 		}
 		c.Port = uint16(portInt)
 	}
+	if redisURL := os.Getenv("REDIS_URL"); redisURL != "" {
+		c.Redis = &redisURL
+	}
 
 	return nil
 }
