@@ -14,6 +14,13 @@ COPY . .
 RUN CGO_ENABLED=0 go build -o bin/main src/*.go
 RUN mv config.example.yml ./bin/config.yml
 
+
+#######################
+# Test stage
+FROM build as test
+RUN go test -v ./... 
+
+
 #######################
 # Runtime stage
 
