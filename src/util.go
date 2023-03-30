@@ -16,7 +16,7 @@ import (
 var (
 	//go:embed icon.png
 	defaultIcon    []byte
-	blockedServers *MutexArray = nil
+	blockedServers *MutexArray    = nil
 	ipAddressRegex *regexp.Regexp = regexp.MustCompile(`^\d{1,3}(\.\d{1,3}){3}$`)
 )
 
@@ -40,11 +40,10 @@ func (m *MutexArray) Has(value interface{}) bool {
 	return false
 }
 
-
-
 // GetBlockedServerList fetches the list of blocked servers from Mojang's session server.
 func GetBlockedServerList() error {
 	resp, err := http.Get("https://sessionserver.mojang.com/blockedservers")
+
 	if err != nil {
 		return err
 	}
@@ -56,6 +55,7 @@ func GetBlockedServerList() error {
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
+
 	if err != nil {
 		return err
 	}
@@ -63,6 +63,7 @@ func GetBlockedServerList() error {
 	// Convert []string to []interface{}
 	strSlice := strings.Split(string(body), "\n")
 	interfaceSlice := make([]interface{}, len(strSlice))
+
 	for i, v := range strSlice {
 		interfaceSlice[i] = v
 	}
@@ -75,8 +76,6 @@ func GetBlockedServerList() error {
 	return nil
 }
 
-
-
 // IsBlockedAddress checks if the given address is in the blocked servers list.
 func IsBlockedAddress(address string) bool {
 	split := strings.Split(strings.ToLower(address), ".")
@@ -85,15 +84,12 @@ func IsBlockedAddress(address string) bool {
 	for k := range split {
 		var newAddress string
 
-		switch k {
-		case 0:
+		if k == 0 {
 			newAddress = strings.Join(split, ".")
-		default:
-			if isIPAddress {
-				newAddress = fmt.Sprintf("%s.*", strings.Join(split[0:len(split)-k], "."))
-			} else {
-				newAddress = fmt.Sprintf("*.%s", strings.Join(split[k:], "."))
-			}
+		} else if isIPAddress {
+			newAddress = fmt.Sprintf("%s.*", strings.Join(split[0:len(split)-k], "."))
+		} else {
+			newAddress = fmt.Sprintf("*.%s", strings.Join(split[k:], "."))
 		}
 
 		newAddressBytes := sha1.Sum([]byte(newAddress))
@@ -120,6 +116,7 @@ func ParseAddress(address string, defaultPort uint16) (string, uint16, error) {
 	}
 
 	port, err := strconv.ParseUint(result[1], 10, 16)
+
 	if err != nil {
 		return "", 0, err
 	}

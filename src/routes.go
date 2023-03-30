@@ -10,7 +10,6 @@ import (
 
 func init() {
 	app.Get("/ping", PingHandler)
-	app.Get("/statistics", StatisticsHandler)
 	app.Get("/status/java/:address", JavaStatusHandler)
 	app.Get("/status/bedrock/:address", BedrockStatusHandler)
 	app.Get("/icon", DefaultIconHandler)
@@ -18,21 +17,9 @@ func init() {
 	app.Use(NotFoundHandler)
 }
 
-// StatisticsResponse is the structure for the response of the statistics route.
-type StatisticsResponse struct {
-	Cache CacheConfig `json:"cache"`
-}
-
 // PingHandler responds with a 200 OK status for simple health checks.
 func PingHandler(ctx *fiber.Ctx) error {
 	return ctx.SendStatus(http.StatusOK)
-}
-
-// StatisticsHandler returns the cache configuration in the response.
-func StatisticsHandler(ctx *fiber.Ctx) error {
-	return ctx.JSON(StatisticsResponse{
-		Cache: config.Cache,
-	})
 }
 
 // JavaStatusHandler returns the status of the Java edition Minecraft server specified in the address parameter.
