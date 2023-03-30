@@ -1,8 +1,8 @@
-environment: production
-host: 127.0.0.1
+environment: development
+host: 0.0.0.0
 port: 3001
-redis: redis://username:password@127.0.0.1:6379/0
+redis: ${REDIS_URL} # Use an environment variable to define the Redis URL
 cache:
   java_status_duration: 1m
   bedrock_status_duration: 1m
-  icon_duration: 15m
+  icon_duration: 24h

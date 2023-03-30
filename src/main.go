@@ -15,8 +15,7 @@ var (
 	app *fiber.App = fiber.New(fiber.Config{
 		DisableStartupMessage: true,
 		ErrorHandler: func(ctx *fiber.Ctx, err error) error {
-			log.Println(ctx.Request().URI(), err)
-
+			log.Printf("Error: %v - URI: %v\n", err, ctx.Request().URI())
 			return ctx.SendStatus(http.StatusInternalServerError)
 		},
 	})
@@ -25,24 +24,26 @@ var (
 )
 
 func init() {
+	// Read config file
 	if err := config.ReadFile("config.yml"); err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to read config file: %v", err)
 	}
 
+	// Get the blocked server list
 	if err := GetBlockedServerList(); err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to retrieve EULA blocked servers: %v", err)
 	}
-
 	log.Println("Successfully retrieved EULA blocked servers")
 
+	// Connect to Redis if the config is set
 	if config.Redis != nil {
 		if err := r.Connect(); err != nil {
-			log.Fatal(err)
+			log.Fatalf("Failed to connect to Redis: %v", err)
 		}
-
 		log.Println("Successfully connected to Redis")
 	}
 
+	// Set up middleware
 	app.Use(recover.New(recover.Config{
 		EnableStackTrace: true,
 	}))
@@ -65,5 +66,7 @@ func main() {
 	defer r.Close()
 
 	log.Printf("Listening on %s:%d\n", config.Host, config.Port)
-	log.Fatal(app.Listen(fmt.Sprintf("%s:%d", config.Host, config.Port)))
+	if err := app.Listen(fmt.Sprintf("%s:%d", config.Host, config.Port)); err != nil {
+		log.Fatalf("Failed to start server: %v", err)
+	}
 }

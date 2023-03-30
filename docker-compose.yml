@@ -1,0 +1,36 @@
+version: "3.9"
+
+services:
+  ping-server:
+    build: .
+    image: ping-server
+    ports:
+      - "3001:3001"
+    depends_on:
+      - redis
+    networks:
+      - app_network
+    environment:
+      REDIS_URL: "redis://redis:6379" # Define the Redis URL using the hostname of the Redis service
+    volumes:
+      - type: bind
+        source: ./config.example.yml
+        target: /app/config.yml
+        read_only: true
+
+  redis:
+    image: "redis:latest"
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    networks:
+      - app_network
+    volumes:
+      - redis_data:/data
+
+networks:
+  app_network:
+    driver: bridge
+
+volumes:
+  redis_data:
