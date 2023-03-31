@@ -9,17 +9,35 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+var (
+	// DefaultConfig is the default configuration values used by the application.
+	DefaultConfig *Config = &Config{
+		Environment: "production",
+		Host:        "127.0.0.1",
+		Port:        3001,
+		Redis:       nil,
+		Cache: ConfigCache{
+			JavaStatusDuration:    time.Minute,
+			BedrockStatusDuration: time.Minute,
+			IconDuration:          time.Minute * 15,
+		},
+	}
+)
+
 // Config represents the application configuration.
 type Config struct {
-	Environment string  `yaml:"environment"`
-	Host        string  `yaml:"host"`
-	Port        uint16  `yaml:"port"`
-	Redis       *string `yaml:"redis"`
-	Cache       struct {
-		JavaStatusDuration    time.Duration `yaml:"java_status_duration" json:"java_status_duration"`
-		BedrockStatusDuration time.Duration `yaml:"bedrock_status_duration" json:"bedrock_status_duration"`
-		IconDuration          time.Duration `yaml:"icon_duration" json:"icon_duration"`
-	} `yaml:"cache"`
+	Environment string      `yaml:"environment"`
+	Host        string      `yaml:"host"`
+	Port        uint16      `yaml:"port"`
+	Redis       *string     `yaml:"redis"`
+	Cache       ConfigCache `yaml:"cache"`
+}
+
+// ConfigCache represents the caching durations of various responses.
+type ConfigCache struct {
+	JavaStatusDuration    time.Duration `yaml:"java_status_duration" json:"java_status_duration"`
+	BedrockStatusDuration time.Duration `yaml:"bedrock_status_duration" json:"bedrock_status_duration"`
+	IconDuration          time.Duration `yaml:"icon_duration" json:"icon_duration"`
 }
 
 // ReadFile reads the configuration from the given file and overrides values using environment variables.
@@ -35,6 +53,17 @@ func (c *Config) ReadFile(file string) error {
 	}
 
 	return c.overrideWithEnvVars()
+}
+
+// WriteFile writes the configuration values to a file.
+func (c *Config) WriteFile(file string) error {
+	data, err := yaml.Marshal(c)
+
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(file, data, 0777)
 }
 
 // overrideWithEnvVars overrides configuration values using environment variables.

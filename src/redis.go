@@ -17,11 +17,12 @@ type Redis struct {
 
 // Connect establishes a connection to the Redis server using the configuration.
 func (r *Redis) Connect() error {
-	if config.Redis == nil {
+	if conf.Redis == nil {
 		return errors.New("missing Redis configuration")
 	}
 
-	opts, err := redis.ParseURL(*config.Redis)
+	opts, err := redis.ParseURL(*conf.Redis)
+
 	if err != nil {
 		return err
 	}
@@ -29,6 +30,7 @@ func (r *Redis) Connect() error {
 	r.Client = redis.NewClient(opts)
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+
 	defer cancel()
 
 	return r.Client.Ping(ctx).Err()
@@ -41,6 +43,7 @@ func (r *Redis) Get(key string) ([]byte, time.Duration, error) {
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+
 	defer cancel()
 
 	p := r.Client.Pipeline()
@@ -68,6 +71,7 @@ func (r *Redis) Set(key string, value interface{}, ttl time.Duration) error {
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+
 	defer cancel()
 
 	return r.Client.Set(ctx, key, value, ttl).Err()
@@ -80,6 +84,7 @@ func (r *Redis) Increment(key string) error {
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+
 	defer cancel()
 
 	return r.Client.Incr(ctx, key).Err()
