@@ -1,4 +1,9 @@
 # Ping Server
+![](https://img.shields.io/github/languages/code-size/mcstatus-io/ping-server)
+![](https://img.shields.io/github/issues/mcstatus-io/ping-server)
+![](https://img.shields.io/github/actions/workflow/status/mcstatus-io/ping-server/go.yml)
+![](https://img.shields.io/uptimerobot/ratio/m792379047-190f2d39d31ecafa9b1f86ab)
+
 The status retrieval/ping server that powers the API for mcstatus.io. This repository is open source to allow developers to run their own Minecraft server status API server.
 
 If you do not know what you are doing, or think that the cache durations enforced on our official website are tolerable, I would highly recommend using the official API instead. It is much more reliable and reduces the complexity of hosting it yourself.
