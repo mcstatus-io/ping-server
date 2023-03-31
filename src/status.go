@@ -187,7 +187,7 @@ func GetServerIcon(host string, port uint16) ([]byte, time.Duration, error) {
 		return cache, ttl, err
 	}
 
-	icon := defaultIcon
+	icon := defaultIconBytes
 
 	status, err := mcutil.Status(host, port)
 
