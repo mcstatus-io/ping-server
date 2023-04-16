@@ -3,9 +3,7 @@ BINARY := bin/main
 SOURCES := $(wildcard src/*.go)
 
 # Build for the current platform
-build: $(BINARY)
-
-$(BINARY): $(SOURCES)
+build:
 	go build -o $(BINARY) $(SOURCES)
 
 # Build for Linux
@@ -26,10 +24,6 @@ build-cross: $(BINARY)
 # Run the application
 run: build
 	./$(BINARY)
-
-# Flush cache
-flush-cache: build
-	./$(BINARY) --flush-cache
 
 # Clean up generated files
 .PHONY: clean

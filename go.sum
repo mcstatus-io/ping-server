@@ -26,6 +26,8 @@ github.com/mattn/go-runewidth v0.0.14 h1:+xnbZSEeDbOIg5/mE6JF0w6n9duR1l3/WmbinWV
 github.com/mattn/go-runewidth v0.0.14/go.mod h1:Jdepj2loyihRzMpdS35Xk/zdY8IAYHsh153qUoGf23w=
 github.com/mcstatus-io/mcutil v0.0.0-20230331012121-a2cb94e8ebfe h1:hbmOZmXWQgx+R7RTL4V0ORTEn4GNp2/+cKcqyz4k9yU=
 github.com/mcstatus-io/mcutil v0.0.0-20230331012121-a2cb94e8ebfe/go.mod h1:VUB87/x9EYITmQVXZO4eS+egaZOdvxId4IdpU4L5LoA=
+github.com/mcstatus-io/mcutil v0.0.0-20230416213822-e8ba7a2ea0dd h1:RL36cvcSw53zICdg0CtPD72RuUUH/MgwcEaLz6pE84s=
+github.com/mcstatus-io/mcutil v0.0.0-20230416213822-e8ba7a2ea0dd/go.mod h1:VUB87/x9EYITmQVXZO4eS+egaZOdvxId4IdpU4L5LoA=
 github.com/nxadm/tail v1.4.8 h1:nPr65rt6Y5JFSKQO7qToXr7pePgD6Gwiw05lkbyAQTE=
 github.com/onsi/ginkgo v1.16.5 h1:8xi0RTUf59SOSfEtZMvwTvXYMzG4gV23XVHOZiXNtnE=
 github.com/onsi/gomega v1.18.1 h1:M1GfJqGRrBrrGGsbxzV5dqM2U2ApXefZCQpkukxYRLE=
