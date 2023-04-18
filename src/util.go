@@ -230,3 +230,8 @@ func ScaleImageNearestNeighbor(img image.Image, sx, sy int) image.Image {
 
 	return out
 }
+
+// PointerOf returns a pointer of the argument passed.
+func PointerOf[T any](v T) *T {
+	return &v
+}

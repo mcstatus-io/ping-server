@@ -4,10 +4,15 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/mcstatus-io/mcutil"
+	"github.com/mcstatus-io/mcutil/description"
+	"github.com/mcstatus-io/mcutil/options"
+	"github.com/mcstatus-io/mcutil/response"
 )
 
 // StatusResponse is the root response for returning any status response from the API.
@@ -28,11 +33,13 @@ type JavaStatusResponse struct {
 
 // JavaStatus is the status response properties for Java Edition.
 type JavaStatus struct {
-	Version *JavaVersion `json:"version"`
-	Players JavaPlayers  `json:"players"`
-	MOTD    MOTD         `json:"motd"`
-	Icon    *string      `json:"icon"`
-	Mods    []Mod        `json:"mods"`
+	Version  *JavaVersion `json:"version"`
+	Players  JavaPlayers  `json:"players"`
+	MOTD     MOTD         `json:"motd"`
+	Icon     *string      `json:"icon"`
+	Mods     []Mod        `json:"mods"`
+	Software *string      `json:"software"`
+	Plugins  []Plugin     `json:"plugins"`
 }
 
 // BedrockStatusResponse is the combined response of the root response and the Bedrock Edition status response.
@@ -99,6 +106,12 @@ type Mod struct {
 	Version string `json:"version"`
 }
 
+// Plugin is a plugin that is enabled on a Java Edition server.
+type Plugin struct {
+	Name    string  `json:"name"`
+	Version *string `json:"version"`
+}
+
 // GetJavaStatus returns the status response of a Java Edition server, either using cache or fetching a fresh status.
 func GetJavaStatus(host string, port uint16) (*JavaStatusResponse, time.Duration, error) {
 	cacheKey := fmt.Sprintf("java:%s-%d", host, port)
@@ -117,11 +130,7 @@ func GetJavaStatus(host string, port uint16) (*JavaStatusResponse, time.Duration
 		return &response, ttl, err
 	}
 
-	response, err := FetchJavaStatus(host, port)
-
-	if err != nil {
-		return nil, 0, err
-	}
+	response := FetchJavaStatus(host, port)
 
 	data, err := json.Marshal(response)
 
@@ -133,7 +142,7 @@ func GetJavaStatus(host string, port uint16) (*JavaStatusResponse, time.Duration
 		return nil, 0, err
 	}
 
-	return response, 0, nil
+	return &response, 0, nil
 }
 
 // GetBedrockStatus returns the status response of a Bedrock Edition server, either using cache or fetching a fresh status.
@@ -208,118 +217,36 @@ func GetServerIcon(host string, port uint16) ([]byte, time.Duration, error) {
 	return icon, 0, nil
 }
 
-// FetchJavaStatus fetches a fresh status of a Java Edition server.
-func FetchJavaStatus(host string, port uint16) (*JavaStatusResponse, error) {
-	status, err := mcutil.Status(host, port)
+// FetchJavaStatus fetches fresh information about a Java Edition Minecraft server.
+func FetchJavaStatus(host string, port uint16) JavaStatusResponse {
+	var wg sync.WaitGroup
 
-	if err != nil {
-		statusLegacy, err := mcutil.StatusLegacy(host, port)
+	wg.Add(2)
 
-		if err != nil {
-			return &JavaStatusResponse{
-				StatusResponse: StatusResponse{
-					Online:      false,
-					Host:        host,
-					Port:        port,
-					EULABlocked: IsBlockedAddress(host),
-					RetrievedAt: time.Now().UnixMilli(),
-					ExpiresAt:   time.Now().Add(conf.Cache.JavaStatusDuration).UnixMilli(),
-				},
-			}, nil
+	var status interface{} = nil
+	var query *response.FullQuery = nil
+
+	go func() {
+		defer wg.Done()
+
+		if result, _ := mcutil.Status(host, port); result != nil {
+			status = result
+		} else if result, _ := mcutil.StatusLegacy(host, port); result != nil {
+			status = result
 		}
+	}()
 
-		response := &JavaStatusResponse{
-			StatusResponse: StatusResponse{
-				Online:      true,
-				Host:        host,
-				Port:        port,
-				EULABlocked: IsBlockedAddress(host),
-				RetrievedAt: time.Now().UnixMilli(),
-				ExpiresAt:   time.Now().Add(conf.Cache.JavaStatusDuration).UnixMilli(),
-			},
-			JavaStatus: &JavaStatus{
-				Version: nil,
-				Players: JavaPlayers{
-					Online: &statusLegacy.Players.Online,
-					Max:    &statusLegacy.Players.Max,
-					List:   make([]Player, 0),
-				},
-				MOTD: MOTD{
-					Raw:   statusLegacy.MOTD.Raw,
-					Clean: statusLegacy.MOTD.Clean,
-					HTML:  statusLegacy.MOTD.HTML,
-				},
-				Icon: nil,
-				Mods: make([]Mod, 0),
-			},
-		}
+	go func() {
+		defer wg.Done()
 
-		if statusLegacy.Version != nil {
-			response.Version = &JavaVersion{
-				NameRaw:   statusLegacy.Version.NameRaw,
-				NameClean: statusLegacy.Version.NameClean,
-				NameHTML:  statusLegacy.Version.NameHTML,
-				Protocol:  statusLegacy.Version.Protocol,
-			}
-		}
+		query, _ = mcutil.FullQuery(host, port, options.Query{
+			Timeout: time.Second,
+		})
+	}()
 
-		return response, nil
-	}
+	wg.Wait()
 
-	playerList := make([]Player, 0)
-
-	if status.Players.Sample != nil {
-		for _, player := range status.Players.Sample {
-			playerList = append(playerList, Player{
-				UUID:      player.ID,
-				NameRaw:   player.NameRaw,
-				NameClean: player.NameClean,
-				NameHTML:  player.NameHTML,
-			})
-		}
-	}
-
-	modList := make([]Mod, 0)
-
-	if status.ModInfo != nil {
-		for _, mod := range status.ModInfo.Mods {
-			modList = append(modList, Mod{
-				Name:    mod.ID,
-				Version: mod.Version,
-			})
-		}
-	}
-
-	return &JavaStatusResponse{
-		StatusResponse: StatusResponse{
-			Online:      true,
-			Host:        host,
-			Port:        port,
-			EULABlocked: IsBlockedAddress(host),
-			RetrievedAt: time.Now().UnixMilli(),
-			ExpiresAt:   time.Now().Add(conf.Cache.JavaStatusDuration).UnixMilli(),
-		},
-		JavaStatus: &JavaStatus{
-			Version: &JavaVersion{
-				NameRaw:   status.Version.NameRaw,
-				NameClean: status.Version.NameClean,
-				NameHTML:  status.Version.NameHTML,
-				Protocol:  status.Version.Protocol,
-			},
-			Players: JavaPlayers{
-				Online: status.Players.Online,
-				Max:    status.Players.Max,
-				List:   playerList,
-			},
-			MOTD: MOTD{
-				Raw:   status.MOTD.Raw,
-				Clean: status.MOTD.Clean,
-				HTML:  status.MOTD.HTML,
-			},
-			Icon: status.Favicon,
-			Mods: modList,
-		},
-	}, nil
+	return BuildJavaResponse(host, port, status, query)
 }
 
 // FetchBedrockStatus fetches a fresh status of a Bedrock Edition server.
@@ -411,4 +338,175 @@ func FetchBedrockStatus(host string, port uint16) (*BedrockStatusResponse, error
 	}
 
 	return response, nil
+}
+
+// BuildJavaResponse builds the response data from the status and query information.
+func BuildJavaResponse(host string, port uint16, status interface{}, query *response.FullQuery) (result JavaStatusResponse) {
+	result = JavaStatusResponse{
+		StatusResponse: StatusResponse{
+			Online:      status != nil || query != nil,
+			Host:        host,
+			Port:        port,
+			EULABlocked: IsBlockedAddress(host),
+			RetrievedAt: time.Now().UnixMilli(),
+			ExpiresAt:   time.Now().Add(conf.Cache.JavaStatusDuration).UnixMilli(),
+		},
+		JavaStatus: nil,
+	}
+
+	if status == nil && query == nil {
+		return
+	}
+
+	result.JavaStatus = &JavaStatus{
+		Players: JavaPlayers{
+			List: make([]Player, 0),
+		},
+		Mods:    make([]Mod, 0),
+		Plugins: make([]Plugin, 0),
+	}
+
+	if status != nil {
+		switch s := status.(type) {
+		case *response.JavaStatus:
+			{
+				result.Version = &JavaVersion{
+					NameRaw:   s.Version.NameRaw,
+					NameClean: s.Version.NameClean,
+					NameHTML:  s.Version.NameHTML,
+					Protocol:  s.Version.Protocol,
+				}
+
+				result.Players = JavaPlayers{
+					Online: s.Players.Online,
+					Max:    s.Players.Max,
+					List:   make([]Player, 0),
+				}
+
+				result.MOTD = MOTD{
+					Raw:   s.MOTD.Raw,
+					Clean: s.MOTD.Clean,
+					HTML:  s.MOTD.HTML,
+				}
+
+				result.Icon = s.Favicon
+
+				if s.Players.Sample != nil {
+					for _, player := range s.Players.Sample {
+						result.Players.List = append(result.Players.List, Player{
+							UUID:      player.ID,
+							NameRaw:   player.NameRaw,
+							NameClean: player.NameClean,
+							NameHTML:  player.NameHTML,
+						})
+					}
+				}
+
+				if s.ModInfo != nil {
+					for _, mod := range s.ModInfo.Mods {
+						result.Mods = append(result.Mods, Mod{
+							Name:    mod.ID,
+							Version: mod.Version,
+						})
+					}
+				}
+
+				break
+			}
+		case *response.JavaStatusLegacy:
+			{
+				if s.Version != nil {
+					result.Version = &JavaVersion{
+						NameRaw:   s.Version.NameRaw,
+						NameClean: s.Version.NameClean,
+						NameHTML:  s.Version.NameHTML,
+						Protocol:  s.Version.Protocol,
+					}
+				}
+
+				result.Players = JavaPlayers{
+					Online: &s.Players.Online,
+					Max:    &s.Players.Max,
+					List:   make([]Player, 0),
+				}
+
+				result.MOTD = MOTD{
+					Raw:   s.MOTD.Raw,
+					Clean: s.MOTD.Clean,
+					HTML:  s.MOTD.HTML,
+				}
+
+				break
+			}
+		default:
+			panic(fmt.Errorf("unknown status type: %T", status))
+		}
+	}
+
+	if query != nil {
+		if status == nil {
+			if motd, ok := query.Data["hostname"]; ok {
+				if parsedMOTD, err := description.ParseFormatting(motd); err == nil {
+					result.MOTD = MOTD{
+						Raw:   parsedMOTD.Raw,
+						Clean: parsedMOTD.Clean,
+						HTML:  parsedMOTD.HTML,
+					}
+				}
+			}
+
+			if onlinePlayers, ok := query.Data["numplayers"]; ok {
+				value, err := strconv.ParseInt(onlinePlayers, 10, 64)
+
+				if err == nil {
+					result.Players.Online = &value
+				}
+			}
+
+			if maxPlayers, ok := query.Data["maxplayers"]; ok {
+				value, err := strconv.ParseInt(maxPlayers, 10, 64)
+
+				if err == nil {
+					result.Players.Max = &value
+				}
+			}
+
+			for _, playerName := range query.Players {
+				parsedName, err := description.ParseFormatting(playerName)
+
+				if err == nil {
+					result.Players.List = append(result.Players.List, Player{
+						UUID:      "",
+						NameRaw:   parsedName.Raw,
+						NameClean: parsedName.Clean,
+						NameHTML:  parsedName.HTML,
+					})
+				}
+			}
+		}
+
+		if plugins, ok := query.Data["plugins"]; ok {
+			if softwareSplit := strings.Split(strings.Trim(plugins, " "), ":"); len(softwareSplit) > 1 {
+				result.Software = PointerOf(strings.Trim(softwareSplit[0], " "))
+
+				for _, plugin := range strings.Split(softwareSplit[1], ";") {
+					pluginSplit := strings.Split(strings.Trim(plugin, " "), " ")
+
+					if len(pluginSplit) > 1 {
+						result.Plugins = append(result.Plugins, Plugin{
+							Name:    pluginSplit[0],
+							Version: PointerOf(pluginSplit[1]),
+						})
+					} else {
+						result.Plugins = append(result.Plugins, Plugin{
+							Name:    pluginSplit[0],
+							Version: nil,
+						})
+					}
+				}
+			}
+		}
+	}
+
+	return
 }

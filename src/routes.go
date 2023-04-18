@@ -11,8 +11,8 @@ import (
 func init() {
 	app.Get("/ping", PingHandler)
 	app.Get("/status/java/:address", JavaStatusHandler)
-	app.Get("/widget/java/:address", JavaWidgetHandler)
 	app.Get("/status/bedrock/:address", BedrockStatusHandler)
+	app.Get("/widget/java/:address", JavaWidgetHandler)
 	app.Get("/icon", DefaultIconHandler)
 	app.Get("/icon/:address", IconHandler)
 	app.Use(NotFoundHandler)
