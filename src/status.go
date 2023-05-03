@@ -113,8 +113,8 @@ type Plugin struct {
 }
 
 // GetJavaStatus returns the status response of a Java Edition server, either using cache or fetching a fresh status.
-func GetJavaStatus(host string, port uint16) (*JavaStatusResponse, time.Duration, error) {
-	cacheKey := fmt.Sprintf("java:%s-%d", host, port)
+func GetJavaStatus(host string, port uint16, enableQuery bool) (*JavaStatusResponse, time.Duration, error) {
+	cacheKey := fmt.Sprintf("java:%v-%s-%d", enableQuery, host, port)
 
 	cache, ttl, err := r.Get(cacheKey)
 
@@ -130,7 +130,7 @@ func GetJavaStatus(host string, port uint16) (*JavaStatusResponse, time.Duration
 		return &response, ttl, err
 	}
 
-	response := FetchJavaStatus(host, port)
+	response := FetchJavaStatus(host, port, enableQuery)
 
 	data, err := json.Marshal(response)
 
@@ -218,10 +218,8 @@ func GetServerIcon(host string, port uint16) ([]byte, time.Duration, error) {
 }
 
 // FetchJavaStatus fetches fresh information about a Java Edition Minecraft server.
-func FetchJavaStatus(host string, port uint16) JavaStatusResponse {
+func FetchJavaStatus(host string, port uint16, enableQuery bool) JavaStatusResponse {
 	var wg sync.WaitGroup
-
-	wg.Add(2)
 
 	var status interface{} = nil
 	var query *response.FullQuery = nil
@@ -236,13 +234,19 @@ func FetchJavaStatus(host string, port uint16) JavaStatusResponse {
 		}
 	}()
 
-	go func() {
-		defer wg.Done()
+	wg.Add(1)
 
-		query, _ = mcutil.FullQuery(host, port, options.Query{
-			Timeout: time.Second,
-		})
-	}()
+	if enableQuery {
+		go func() {
+			defer wg.Done()
+
+			query, _ = mcutil.FullQuery(host, port, options.Query{
+				Timeout: time.Second,
+			})
+		}()
+
+		wg.Add(1)
+	}
 
 	wg.Wait()
 

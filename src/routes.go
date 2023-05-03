@@ -31,11 +31,13 @@ func JavaStatusHandler(ctx *fiber.Ctx) error {
 		return ctx.Status(http.StatusBadRequest).SendString("Invalid address value")
 	}
 
+	enableQuery := ctx.QueryBool("query", true)
+
 	if err = r.Increment(fmt.Sprintf("java-hits:%s-%d", host, port)); err != nil {
 		return err
 	}
 
-	response, expiresAt, err := GetJavaStatus(host, port)
+	response, expiresAt, err := GetJavaStatus(host, port, enableQuery)
 
 	if err != nil {
 		return err
@@ -62,7 +64,7 @@ func JavaWidgetHandler(ctx *fiber.Ctx) error {
 		return err
 	}
 
-	response, _, err := GetJavaStatus(host, port)
+	response, _, err := GetJavaStatus(host, port, false)
 
 	if err != nil {
 		return err
