@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/fogleman/gg v1.3.0
 	github.com/go-redis/redis/v8 v8.11.5
-	github.com/gofiber/fiber/v2 v2.44.0
+	github.com/gofiber/fiber/v2 v2.45.0
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
 	github.com/mcstatus-io/mcutil v1.1.0
 	golang.org/x/image v0.7.0
