@@ -3,12 +3,9 @@ module main
 go 1.19
 
 require (
-	github.com/fogleman/gg v1.3.0
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/gofiber/fiber/v2 v2.45.0
-	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
 	github.com/mcstatus-io/mcutil v1.1.0
-	golang.org/x/image v0.7.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -30,4 +27,5 @@ require (
 	github.com/valyala/fasthttp v1.47.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect
 	golang.org/x/sys v0.8.0 // indirect
+	golang.org/x/text v0.9.0 // indirect
 )

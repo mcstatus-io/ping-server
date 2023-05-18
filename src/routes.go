@@ -12,7 +12,6 @@ func init() {
 	app.Get("/ping", PingHandler)
 	app.Get("/status/java/:address", JavaStatusHandler)
 	app.Get("/status/bedrock/:address", BedrockStatusHandler)
-	app.Get("/widget/java/:address", JavaWidgetHandler)
 	app.Get("/icon", DefaultIconHandler)
 	app.Get("/icon/:address", IconHandler)
 	app.Use(NotFoundHandler)
@@ -50,33 +49,6 @@ func JavaStatusHandler(ctx *fiber.Ctx) error {
 	}
 
 	return ctx.JSON(response)
-}
-
-// JavaWidgetHandler returns the widget of the Java Edition server.
-func JavaWidgetHandler(ctx *fiber.Ctx) error {
-	host, port, err := ParseAddress(ctx.Params("address"), 25565)
-
-	if err != nil {
-		return ctx.Status(http.StatusBadRequest).SendString("Invalid address value")
-	}
-
-	if err = r.Increment(fmt.Sprintf("java-hits:%s-%d", host, port)); err != nil {
-		return err
-	}
-
-	response, _, err := GetJavaStatus(host, port, false)
-
-	if err != nil {
-		return err
-	}
-
-	widget, err := GenerateJavaWidget(response, ctx.QueryBool("dark", true))
-
-	if err != nil {
-		return err
-	}
-
-	return ctx.Type("png").Send(widget)
 }
 
 // BedrockStatusHandler returns the status of the Bedrock edition Minecraft server specified in the address parameter.
