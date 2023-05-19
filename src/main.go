@@ -74,9 +74,15 @@ func init() {
 func main() {
 	defer r.Close()
 
-	log.Printf("Listening on %s:%d\n", conf.Host, conf.Port)
+	instanceID, err := GetInstanceID()
 
-	if err := app.Listen(fmt.Sprintf("%s:%d", conf.Host, conf.Port)); err != nil {
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Printf("Listening on %s:%d\n", conf.Host, conf.Port+instanceID)
+
+	if err := app.Listen(fmt.Sprintf("%s:%d", conf.Host, conf.Port+instanceID)); err != nil {
 		log.Fatalf("failed to start server: %v", err)
 	}
 }

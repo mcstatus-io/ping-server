@@ -6,7 +6,9 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -122,6 +124,21 @@ func ParseAddress(address string, defaultPort uint16) (string, uint16, error) {
 	}
 
 	return result[0], uint16(port), nil
+}
+
+// GetInstanceID returns the INSTANCE_ID environment variable parsed as an unsigned 16-bit integer.
+func GetInstanceID() (uint16, error) {
+	if instanceID := os.Getenv("INSTANCE_ID"); len(instanceID) > 0 {
+		value, err := strconv.ParseUint(instanceID, 10, 16)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		return uint16(value), nil
+	}
+
+	return 0, nil
 }
 
 // PointerOf returns a pointer of the argument passed.
