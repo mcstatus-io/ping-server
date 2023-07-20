@@ -116,6 +116,11 @@ type Plugin struct {
 func GetJavaStatus(host string, port uint16, enableQuery bool) (*JavaStatusResponse, time.Duration, error) {
 	cacheKey := fmt.Sprintf("java:%v-%s-%d", enableQuery, host, port)
 
+	mutex := r.NewMutex(fmt.Sprintf("java-lock:%v-%s-%d", enableQuery, host, port))
+	mutex.Lock()
+
+	defer mutex.Unlock()
+
 	cache, ttl, err := r.Get(cacheKey)
 
 	if err != nil {
@@ -148,6 +153,11 @@ func GetJavaStatus(host string, port uint16, enableQuery bool) (*JavaStatusRespo
 // GetBedrockStatus returns the status response of a Bedrock Edition server, either using cache or fetching a fresh status.
 func GetBedrockStatus(host string, port uint16) (*BedrockStatusResponse, time.Duration, error) {
 	cacheKey := fmt.Sprintf("bedrock:%s-%d", host, port)
+
+	mutex := r.NewMutex(fmt.Sprintf("bedrock-lock:%s-%d", host, port))
+	mutex.Lock()
+
+	defer mutex.Unlock()
 
 	cache, ttl, err := r.Get(cacheKey)
 

@@ -18,19 +18,20 @@ import (
 var (
 	//go:embed icon.png
 	defaultIconBytes []byte
-	blockedServers   *MutexArray    = nil
-	ipAddressRegex   *regexp.Regexp = regexp.MustCompile(`^\d{1,3}(\.\d{1,3}){3}$`)
+	blockedServers   *MutexArray[string] = nil
+	ipAddressRegex   *regexp.Regexp      = regexp.MustCompile(`^\d{1,3}(\.\d{1,3}){3}$`)
 )
 
-// MutexArray is a thread-safe array for storing and checking values.
-type MutexArray struct {
-	List  []interface{}
+// MutexArray is a thread-safe array for storing and retrieving values.
+type MutexArray[T comparable] struct {
+	List  []T
 	Mutex *sync.Mutex
 }
 
 // Has checks if the given value is present in the array.
-func (m *MutexArray) Has(value interface{}) bool {
+func (m *MutexArray[T]) Has(value T) bool {
 	m.Mutex.Lock()
+
 	defer m.Mutex.Unlock()
 
 	for _, v := range m.List {
@@ -51,7 +52,7 @@ func GetBlockedServerList() error {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		return fmt.Errorf("mojang: unexpected status code: %d", resp.StatusCode)
 	}
 
 	defer resp.Body.Close()
@@ -62,16 +63,8 @@ func GetBlockedServerList() error {
 		return err
 	}
 
-	// Convert []string to []interface{}
-	strSlice := strings.Split(string(body), "\n")
-	interfaceSlice := make([]interface{}, len(strSlice))
-
-	for i, v := range strSlice {
-		interfaceSlice[i] = v
-	}
-
-	blockedServers = &MutexArray{
-		List:  interfaceSlice,
+	blockedServers = &MutexArray[string]{
+		List:  strings.Split(string(body), "\n"),
 		Mutex: &sync.Mutex{},
 	}
 
@@ -80,24 +73,21 @@ func GetBlockedServerList() error {
 
 // IsBlockedAddress checks if the given address is in the blocked servers list.
 func IsBlockedAddress(address string) bool {
-	split := strings.Split(strings.ToLower(address), ".")
-	isIPAddress := ipAddressRegex.MatchString(address)
+	addressSegments := strings.Split(strings.ToLower(address), ".")
+	isIPv4Address := ipAddressRegex.MatchString(address)
 
-	for k := range split {
-		var newAddress string
+	for i := range addressSegments {
+		var checkAddress string
 
-		if k == 0 {
-			newAddress = strings.Join(split, ".")
-		} else if isIPAddress {
-			newAddress = fmt.Sprintf("%s.*", strings.Join(split[0:len(split)-k], "."))
+		if i == 0 {
+			checkAddress = strings.Join(addressSegments, ".")
+		} else if isIPv4Address {
+			checkAddress = fmt.Sprintf("%s.*", strings.Join(addressSegments[0:len(addressSegments)-i], "."))
 		} else {
-			newAddress = fmt.Sprintf("*.%s", strings.Join(split[k:], "."))
+			checkAddress = fmt.Sprintf("*.%s", strings.Join(addressSegments[i:], "."))
 		}
 
-		newAddressBytes := sha1.Sum([]byte(newAddress))
-		newAddressHash := hex.EncodeToString(newAddressBytes[:])
-
-		if blockedServers.Has(newAddressHash) {
+		if blockedServers.Has(SHA256(checkAddress)) {
 			return true
 		}
 	}
@@ -139,6 +129,13 @@ func GetInstanceID() (uint16, error) {
 	}
 
 	return 0, nil
+}
+
+// SHA256 returns the result of hashing the input value using SHA256 algorithm.
+func SHA256(input string) string {
+	result := sha1.Sum([]byte(input))
+
+	return hex.EncodeToString(result[:])
 }
 
 // PointerOf returns a pointer of the argument passed.

@@ -5,14 +5,19 @@ import (
 	"errors"
 	"time"
 
-	"github.com/go-redis/redis/v8"
+	"github.com/go-redsync/redsync/v4"
+	redsyncredis "github.com/go-redsync/redsync/v4/redis"
+	redsyncredislib "github.com/go-redsync/redsync/v4/redis/goredis/v9"
+	"github.com/redis/go-redis/v9"
 )
 
 const defaultTimeout = 5 * time.Second
 
 // Redis is a wrapper around the Redis client.
 type Redis struct {
-	Client *redis.Client
+	Client     *redis.Client
+	Pool       *redsyncredis.Pool
+	SyncClient *redsync.Redsync
 }
 
 // Connect establishes a connection to the Redis server using the configuration.
@@ -20,6 +25,10 @@ func (r *Redis) Connect() error {
 	if conf.Redis == nil {
 		return errors.New("missing Redis configuration")
 	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+
+	defer cancel()
 
 	opts, err := redis.ParseURL(*conf.Redis)
 
@@ -29,11 +38,15 @@ func (r *Redis) Connect() error {
 
 	r.Client = redis.NewClient(opts)
 
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	if err = r.Client.Ping(ctx).Err(); err != nil {
+		return err
+	}
 
-	defer cancel()
+	pool := redsyncredislib.NewPool(r.Client)
 
-	return r.Client.Ping(ctx).Err()
+	r.SyncClient = redsync.New(pool)
+
+	return nil
 }
 
 // Get retrieves the value and TTL for a given key.
@@ -90,6 +103,19 @@ func (r *Redis) Increment(key string) error {
 	return r.Client.Incr(ctx, key).Err()
 }
 
+// NewMutex creates a new mutually exclusive lock that only one process can hold.
+func (r *Redis) NewMutex(name string) *Mutex {
+	if r.Client == nil || r.SyncClient == nil {
+		return &Mutex{
+			Mutex: nil,
+		}
+	}
+
+	return &Mutex{
+		Mutex: r.SyncClient.NewMutex(name),
+	}
+}
+
 // Close closes the Redis client connection.
 func (r *Redis) Close() error {
 	if r.Client == nil {
@@ -97,4 +123,33 @@ func (r *Redis) Close() error {
 	}
 
 	return r.Client.Close()
+}
+
+// Mutex is a mutually exclusive lock held across all processes.
+type Mutex struct {
+	Mutex *redsync.Mutex
+}
+
+// Lock will lock the mutex so no other process can hold it.
+func (m *Mutex) Lock() error {
+	if m.Mutex == nil {
+		return nil
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+
+	defer cancel()
+
+	return m.Mutex.LockContext(ctx)
+}
+
+// Unlock will allow any other process to obtain a lock with the same key.
+func (m *Mutex) Unlock() error {
+	if m.Mutex == nil {
+		return nil
+	}
+
+	_, err := m.Mutex.Unlock()
+
+	return err
 }

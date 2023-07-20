@@ -2,10 +2,11 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -22,12 +23,15 @@ var (
 			return ctx.SendStatus(http.StatusInternalServerError)
 		},
 	})
-	r    *Redis  = &Redis{}
-	conf *Config = DefaultConfig
+	r          *Redis  = &Redis{}
+	conf       *Config = DefaultConfig
+	instanceID uint16
 )
 
 func init() {
-	if err := conf.ReadFile("config.yml"); err != nil {
+	var err error
+
+	if err = conf.ReadFile("config.yml"); err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			log.Printf("config.yml does not exist, writing default config\n")
 
@@ -39,14 +43,14 @@ func init() {
 		}
 	}
 
-	if err := GetBlockedServerList(); err != nil {
+	if err = GetBlockedServerList(); err != nil {
 		log.Fatalf("Failed to retrieve EULA blocked servers: %v", err)
 	}
 
 	log.Println("Successfully retrieved EULA blocked servers")
 
 	if conf.Redis != nil {
-		if err := r.Connect(); err != nil {
+		if err = r.Connect(); err != nil {
 			log.Fatalf("Failed to connect to Redis: %v", err)
 		}
 
@@ -69,20 +73,20 @@ func init() {
 			TimeFormat: "2006/01/02 15:04:05",
 		}))
 	}
+
+	if instanceID, err = GetInstanceID(); err != nil {
+		panic(err)
+	}
 }
 
 func main() {
 	defer r.Close()
 
-	instanceID, err := GetInstanceID()
+	go ListenAndServe(conf.Host, conf.Port+instanceID)
 
-	if err != nil {
-		log.Fatal(err)
-	}
+	defer app.Shutdown()
 
-	log.Printf("Listening on %s:%d\n", conf.Host, conf.Port+instanceID)
-
-	if err := app.Listen(fmt.Sprintf("%s:%d", conf.Host, conf.Port+instanceID)); err != nil {
-		log.Fatalf("failed to start server: %v", err)
-	}
+	s := make(chan os.Signal, 1)
+	signal.Notify(s, os.Interrupt, syscall.SIGTERM)
+	<-s
 }
