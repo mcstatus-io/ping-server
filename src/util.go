@@ -18,8 +18,10 @@ import (
 var (
 	//go:embed icon.png
 	defaultIconBytes []byte
-	blockedServers   *MutexArray[string] = nil
-	ipAddressRegex   *regexp.Regexp      = regexp.MustCompile(`^\d{1,3}(\.\d{1,3}){3}$`)
+	//go:embed favicon.ico
+	favicon        []byte
+	blockedServers *MutexArray[string] = nil
+	ipAddressRegex *regexp.Regexp      = regexp.MustCompile(`^\d{1,3}(\.\d{1,3}){3}$`)
 )
 
 // MutexArray is a thread-safe array for storing and retrieving values.
