@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 
 	"github.com/gofiber/fiber/v2"
@@ -25,7 +26,7 @@ var (
 	})
 	r          *Redis  = &Redis{}
 	conf       *Config = DefaultConfig
-	instanceID uint16
+	instanceID uint16  = 0
 )
 
 func init() {
@@ -80,6 +81,18 @@ func init() {
 }
 
 func main() {
+	if v := os.Getenv("PROFILE"); len(v) > 0 {
+		port, err := strconv.ParseUint(v, 10, 16)
+
+		if err != nil {
+			panic(err)
+		}
+
+		go Profile(uint16(port))
+
+		log.Printf("Profiler is listening on :%d\n", port)
+	}
+
 	defer r.Close()
 
 	go ListenAndServe(conf.Host, conf.Port+instanceID)

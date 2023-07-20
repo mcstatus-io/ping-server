@@ -235,31 +235,37 @@ func GetServerIcon(host string, port uint16) ([]byte, time.Duration, error) {
 func FetchJavaStatus(host string, port uint16, enableQuery bool) JavaStatusResponse {
 	var wg sync.WaitGroup
 
-	var status interface{} = nil
-	var query *response.FullQuery = nil
-
-	go func() {
-		defer wg.Done()
-
-		if result, _ := mcutil.Status(host, port); result != nil {
-			status = result
-		} else if result, _ := mcutil.StatusLegacy(host, port); result != nil {
-			status = result
-		}
-	}()
-
 	wg.Add(1)
 
 	if enableQuery {
-		go func() {
-			defer wg.Done()
+		wg.Add(1)
+	}
 
+	var status interface{} = nil
+	var query *response.FullQuery = nil
+
+	// Status
+	{
+		go func() {
+			if result, _ := mcutil.Status(host, port); result != nil {
+				status = result
+			} else if result, _ := mcutil.StatusLegacy(host, port); result != nil {
+				status = result
+			}
+
+			wg.Done()
+		}()
+	}
+
+	// Query
+	if enableQuery {
+		go func() {
 			query, _ = mcutil.FullQuery(host, port, options.Query{
 				Timeout: time.Second,
 			})
-		}()
 
-		wg.Add(1)
+			wg.Done()
+		}()
 	}
 
 	wg.Wait()
