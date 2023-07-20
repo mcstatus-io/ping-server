@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"main/src/assets"
 	"net/http"
 	"strconv"
 
@@ -25,7 +26,7 @@ func PingHandler(ctx *fiber.Ctx) error {
 
 // FaviconHandler serves the favicon.ico file to any users that visit the API using a browser.
 func FaviconHandler(ctx *fiber.Ctx) error {
-	return ctx.Type("ico").Send(favicon)
+	return ctx.Type("ico").Send(assets.Favicon)
 }
 
 // JavaStatusHandler returns the status of the Java edition Minecraft server specified in the address parameter.
@@ -107,7 +108,7 @@ func IconHandler(ctx *fiber.Ctx) error {
 
 // DefaultIconHandler returns the default server icon.
 func DefaultIconHandler(ctx *fiber.Ctx) error {
-	return ctx.Type("png").Send(defaultIconBytes)
+	return ctx.Type("png").Send(assets.DefaultIcon)
 }
 
 // NotFoundHandler handles requests to routes that do not exist and returns a 404 Not Found status.

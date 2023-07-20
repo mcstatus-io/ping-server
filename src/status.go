@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"main/src/assets"
 	"strconv"
 	"strings"
 	"sync"
@@ -210,7 +211,7 @@ func GetServerIcon(host string, port uint16) ([]byte, time.Duration, error) {
 		return cache, ttl, err
 	}
 
-	icon := defaultIconBytes
+	icon := assets.DefaultIcon
 
 	status, err := mcutil.Status(host, port)
 

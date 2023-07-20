@@ -16,10 +16,6 @@ import (
 )
 
 var (
-	//go:embed icon.png
-	defaultIconBytes []byte
-	//go:embed favicon.ico
-	favicon        []byte
 	blockedServers *MutexArray[string] = nil
 	ipAddressRegex *regexp.Regexp      = regexp.MustCompile(`^\d{1,3}(\.\d{1,3}){3}$`)
 )
