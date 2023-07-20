@@ -17,6 +17,7 @@ var (
 		Port:        3001,
 		Redis:       nil,
 		Cache: ConfigCache{
+			EnableLocks:           true,
 			JavaStatusDuration:    time.Minute,
 			BedrockStatusDuration: time.Minute,
 			IconDuration:          time.Minute * 15,
@@ -35,9 +36,10 @@ type Config struct {
 
 // ConfigCache represents the caching durations of various responses.
 type ConfigCache struct {
-	JavaStatusDuration    time.Duration `yaml:"java_status_duration" json:"java_status_duration"`
-	BedrockStatusDuration time.Duration `yaml:"bedrock_status_duration" json:"bedrock_status_duration"`
-	IconDuration          time.Duration `yaml:"icon_duration" json:"icon_duration"`
+	EnableLocks           bool          `yaml:"enable_locks"`
+	JavaStatusDuration    time.Duration `yaml:"java_status_duration"`
+	BedrockStatusDuration time.Duration `yaml:"bedrock_status_duration"`
+	IconDuration          time.Duration `yaml:"icon_duration"`
 }
 
 // ReadFile reads the configuration from the given file and overrides values using environment variables.
