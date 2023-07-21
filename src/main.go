@@ -2,12 +2,11 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
-	"os/signal"
 	"strconv"
-	"syscall"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -95,11 +94,9 @@ func main() {
 
 	defer r.Close()
 
-	go ListenAndServe(conf.Host, conf.Port+instanceID)
+	log.Printf("Listening on %s:%d\n", conf.Host, conf.Port+instanceID)
 
-	defer app.Shutdown()
-
-	s := make(chan os.Signal, 1)
-	signal.Notify(s, os.Interrupt, syscall.SIGTERM)
-	<-s
+	if err := app.Listen(fmt.Sprintf("%s:%d", conf.Host, conf.Port+instanceID)); err != nil {
+		panic(err)
+	}
 }
