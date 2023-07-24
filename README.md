@@ -8,16 +8,16 @@ The status retrieval/ping server that powers the API for mcstatus.io. This repos
 
 If you do not know what you are doing, or think that the cache durations enforced on our official website are tolerable, I would highly recommend using the official API instead. It is much more reliable and reduces the complexity of hosting it yourself.
 
-## Official API Documentation
+## API Documentation
 
 https://mcstatus.io/docs
 
-## Requirements
+## Prerequisites
 
 - [Git](https://git-scm.com/)
 - [Go](https://go.dev/)
-- [Redis](https://redis.io/)
-- [GNU Make](https://www.gnu.org/software/make/) (*optional*)
+- [Redis](https://redis.io/) (optional)
+- [GNU Make](https://www.gnu.org/software/make/) (optional)
 
 ## Installation
 
@@ -25,18 +25,16 @@ https://mcstatus.io/docs
     - `git clone https://github.com/mcstatus-io/ping-server.git`
 2. Move the working directory into the folder
     - `cd ping-server`
-3. Install all required dependencies
-    - `go get ...`
-4. Build the executable
+3. Build the executable
     - Using GNU make
         - `make`
     - Without GNU make
         - `go build -o .\bin\main.exe .\src\*.go` (Windows)
-        - `go build -o bin/main src/*.go` (Unix)
-5. Copy the `config.example.yml` file to `config.yml` and edit the details
-6. Start the API server
+        - `go build -o bin/main src/*.go` (Linux/macOS)
+4. Copy the `config.example.yml` file to `config.yml` and edit the details
+5. Start the API server
     - `.\bin\main.exe` (Windows)
-    - `bin/main` (Unix)
+    - `bin/main` (Linux/macOS)
 
 ## License
 
