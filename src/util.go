@@ -17,7 +17,8 @@ import (
 
 var (
 	blockedServers *MutexArray[string] = nil
-	ipAddressRegex *regexp.Regexp      = regexp.MustCompile(`^\d{1,3}(\.\d{1,3}){3}$`)
+	hostRegEx      *regexp.Regexp      = regexp.MustCompile(`^[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+(:\d{1,5})?$`)
+	ipAddressRegEx *regexp.Regexp      = regexp.MustCompile(`^\d{1,3}(\.\d{1,3}){3}$`)
 )
 
 // MutexArray is a thread-safe array for storing and retrieving values.
@@ -72,7 +73,7 @@ func GetBlockedServerList() error {
 // IsBlockedAddress checks if the given address is in the blocked servers list.
 func IsBlockedAddress(address string) bool {
 	addressSegments := strings.Split(strings.ToLower(address), ".")
-	isIPv4Address := ipAddressRegex.MatchString(address)
+	isIPv4Address := ipAddressRegEx.MatchString(address)
 
 	for i := range addressSegments {
 		var checkAddress string
@@ -95,23 +96,29 @@ func IsBlockedAddress(address string) bool {
 
 // ParseAddress extracts the hostname and port from the given address string, and returns the default port if none is provided.
 func ParseAddress(address string, defaultPort uint16) (string, uint16, error) {
-	result := strings.SplitN(address, ":", 2)
-
-	if len(result) < 1 {
+	if !hostRegEx.MatchString(address) {
 		return "", 0, fmt.Errorf("'%s' does not match any known address", address)
 	}
 
-	if len(result) < 2 {
-		return result[0], defaultPort, nil
+	splitHost := strings.SplitN(address, ":", 2)
+
+	if len(splitHost) < 1 {
+		return "", 0, fmt.Errorf("'%s' does not match any known address", address)
 	}
 
-	port, err := strconv.ParseUint(result[1], 10, 16)
+	host := splitHost[0]
+
+	if len(splitHost) < 2 {
+		return host, defaultPort, nil
+	}
+
+	port, err := strconv.ParseUint(splitHost[1], 10, 16)
 
 	if err != nil {
 		return "", 0, err
 	}
 
-	return result[0], uint16(port), nil
+	return host, uint16(port), nil
 }
 
 // GetInstanceID returns the INSTANCE_ID environment variable parsed as an unsigned 16-bit integer.
