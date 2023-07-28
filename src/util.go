@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"regexp"
 	"strconv"
@@ -134,6 +135,16 @@ func GetInstanceID() (uint16, error) {
 	}
 
 	return 0, nil
+}
+
+// GetCacheKey generates a unique key used for caching status results in Redis.
+func GetCacheKey(host string, port uint16, query bool) string {
+	values := &url.Values{}
+	values.Set("host", host)
+	values.Set("port", strconv.FormatUint(uint64(port), 10))
+	values.Set("query", strconv.FormatBool(query))
+
+	return SHA256(values.Encode())
 }
 
 // SHA256 returns the result of hashing the input value using SHA256 algorithm.
