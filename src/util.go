@@ -4,6 +4,7 @@ import (
 	"crypto/sha1"
 	_ "embed"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -14,6 +15,9 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 var (
@@ -21,6 +25,18 @@ var (
 	hostRegEx      *regexp.Regexp      = regexp.MustCompile(`^[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+(:\d{1,5})?$`)
 	ipAddressRegEx *regexp.Regexp      = regexp.MustCompile(`^\d{1,3}(\.\d{1,3}){3}$`)
 )
+
+// VoteOptions is the options provided as query parameters to the vote route.
+type VoteOptions struct {
+	Version     int
+	Host        string
+	Port        uint16
+	ServiceName string
+	Username    string
+	UUID        string
+	Token       string
+	Timestamp   time.Time
+}
 
 // MutexArray is a thread-safe array for storing and retrieving values.
 type MutexArray[T comparable] struct {
@@ -120,6 +136,87 @@ func ParseAddress(address string, defaultPort uint16) (string, uint16, error) {
 	}
 
 	return host, uint16(port), nil
+}
+
+// ParseVoteOptions parses the vote options from the provided query parameters.
+func ParseVoteOptions(ctx *fiber.Ctx) (*VoteOptions, error) {
+	result := VoteOptions{}
+
+	// Version
+	{
+		result.Version = ctx.QueryInt("version", 2)
+
+		if result.Version < 0 || result.Version > 2 {
+			return nil, fmt.Errorf("invalid 'version' query parameter: %d", result.Version)
+		}
+	}
+
+	// Host
+	{
+		result.Host = ctx.Query("host")
+
+		if len(result.Host) < 1 {
+			return nil, errors.New("missing 'host' query parameter")
+		}
+	}
+
+	// Port
+	{
+		result.Port = uint16(ctx.QueryInt("host", 8192))
+	}
+
+	// Service Name
+	{
+		result.ServiceName = ctx.Query("serviceName", "mcstatus.io")
+
+		if len(result.ServiceName) < 1 {
+			return nil, fmt.Errorf("invalid 'serviceName' query parameter: %s", result.ServiceName)
+		}
+	}
+
+	// Username
+	{
+		result.Username = ctx.Query("username")
+
+		if len(result.Username) < 1 || len(result.Username) > 16 {
+			return nil, fmt.Errorf("invalid 'username' query parameter: %s", result.Username)
+		}
+	}
+
+	// UUID
+	{
+		result.UUID = ctx.Query("uuid")
+
+		// TODO check for properly formatted UUID
+	}
+
+	// Token
+	{
+		result.Token = ctx.Query("token")
+
+		if len(result.Token) < 1 {
+			return nil, fmt.Errorf("invalid 'token' query parameter: %s", result.Token)
+		}
+	}
+
+	// Timestamp
+	{
+		value := ctx.Query("timestamp")
+
+		if len(value) > 0 {
+			parsedTime, err := time.Parse(time.RFC3339, value)
+
+			if err != nil {
+				return nil, fmt.Errorf("invalid 'timestamp' query parameter: %s", result.Token)
+			}
+
+			result.Timestamp = parsedTime
+		} else {
+			result.Timestamp = time.Now()
+		}
+	}
+
+	return &result, nil
 }
 
 // GetInstanceID returns the INSTANCE_ID environment variable parsed as an unsigned 16-bit integer.

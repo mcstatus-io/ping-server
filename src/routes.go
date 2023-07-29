@@ -6,9 +6,11 @@ import (
 	"main/src/assets"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/mcstatus-io/mcutil"
+	"github.com/mcstatus-io/mcutil/options"
 )
 
 func init() {
@@ -18,6 +20,7 @@ func init() {
 	app.Get("/status/bedrock/:address", BedrockStatusHandler)
 	app.Get("/icon", DefaultIconHandler)
 	app.Get("/icon/:address", IconHandler)
+	app.Post("/vote", SendVoteHandler)
 	app.Get("/debug/java/:address", DebugJavaStatusHandler)
 	app.Get("/debug/legacy/:address", DebugLegacyStatusHandler)
 	app.Get("/debug/bedrock/:address", DebugBedrockStatusHandler)
@@ -111,6 +114,35 @@ func IconHandler(ctx *fiber.Ctx) error {
 	}
 
 	return ctx.Type("png").Send(icon)
+}
+
+// SendVoteHandler allows sending of Votifier votes to the specified server.
+func SendVoteHandler(ctx *fiber.Ctx) error {
+	opts, err := ParseVoteOptions(ctx)
+
+	if err != nil {
+		return ctx.Status(http.StatusBadRequest).SendString(err.Error())
+	}
+
+	switch opts.Version {
+	case 1:
+		return ctx.Status(http.StatusNotImplemented).SendString("Votifier version 1 is currently not supported")
+	case 2:
+		{
+			if err = mcutil.SendVote(opts.Host, opts.Port, options.Vote{
+				ServiceName: opts.ServiceName,
+				Username:    opts.Username,
+				Token:       opts.Token,
+				UUID:        opts.UUID,
+				Timestamp:   opts.Timestamp,
+				Timeout:     time.Second * 5,
+			}); err != nil {
+				return ctx.Status(http.StatusBadRequest).SendString(err.Error())
+			}
+		}
+	}
+
+	return ctx.Status(http.StatusOK).SendString("The vote was successfully sent to the server")
 }
 
 // DefaultIconHandler returns the default server icon.
