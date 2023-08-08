@@ -16,8 +16,8 @@ import (
 	"github.com/mcstatus-io/mcutil/response"
 )
 
-// StatusResponse is the root response for returning any status response from the API.
-type StatusResponse struct {
+// BaseStatus is the base response properties for returning any status response from the API.
+type BaseStatus struct {
 	Online      bool   `json:"online"`
 	Host        string `json:"host"`
 	Port        uint16 `json:"port"`
@@ -28,7 +28,7 @@ type StatusResponse struct {
 
 // JavaStatusResponse is the combined response of the root response and the Java Edition status response.
 type JavaStatusResponse struct {
-	StatusResponse
+	BaseStatus
 	*JavaStatus
 }
 
@@ -45,7 +45,7 @@ type JavaStatus struct {
 
 // BedrockStatusResponse is the combined response of the root response and the Bedrock Edition status response.
 type BedrockStatusResponse struct {
-	StatusResponse
+	BaseStatus
 	*BedrockStatus
 }
 
@@ -308,7 +308,7 @@ func FetchBedrockStatus(host string, port uint16) *BedrockStatusResponse {
 
 	if err != nil {
 		return &BedrockStatusResponse{
-			StatusResponse: StatusResponse{
+			BaseStatus: BaseStatus{
 				Online:      false,
 				Host:        host,
 				Port:        port,
@@ -320,7 +320,7 @@ func FetchBedrockStatus(host string, port uint16) *BedrockStatusResponse {
 	}
 
 	response := &BedrockStatusResponse{
-		StatusResponse: StatusResponse{
+		BaseStatus: BaseStatus{
 			Online:      true,
 			Host:        host,
 			Port:        port,
@@ -396,7 +396,7 @@ func FetchBedrockStatus(host string, port uint16) *BedrockStatusResponse {
 // BuildJavaResponse builds the response data from the status and query information.
 func BuildJavaResponse(host string, port uint16, status interface{}, query *response.FullQuery) (result JavaStatusResponse) {
 	result = JavaStatusResponse{
-		StatusResponse: StatusResponse{
+		BaseStatus: BaseStatus{
 			Online:      status != nil || query != nil,
 			Host:        host,
 			Port:        port,
