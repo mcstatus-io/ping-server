@@ -524,8 +524,8 @@ func BuildJavaResponse(host string, port uint16, status interface{}, query *resp
 				}
 			}
 
-			for _, playerName := range query.Players {
-				parsedName, err := description.ParseFormatting(playerName)
+			for _, username := range query.Players {
+				parsedName, err := description.ParseFormatting(username)
 
 				if err == nil {
 					result.Players.List = append(result.Players.List, Player{
@@ -557,6 +557,23 @@ func BuildJavaResponse(host string, port uint16, status interface{}, query *resp
 						})
 					}
 				}
+			}
+		}
+
+		for _, username := range query.Players {
+			if Contains(Map(result.Players.List, func(v Player) string { return v.NameRaw }), username) {
+				continue
+			}
+
+			parsedName, err := description.ParseFormatting(username)
+
+			if err == nil {
+				result.Players.List = append(result.Players.List, Player{
+					UUID:      "",
+					NameRaw:   parsedName.Raw,
+					NameClean: parsedName.Clean,
+					NameHTML:  parsedName.HTML,
+				})
 			}
 		}
 	}
