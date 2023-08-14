@@ -308,7 +308,7 @@ func FetchBedrockStatus(host string, port uint16) BedrockStatusResponse {
 func BuildJavaResponse(host string, port uint16, status interface{}, query *response.FullQuery) (result JavaStatusResponse) {
 	result = JavaStatusResponse{
 		BaseStatus: BaseStatus{
-			Online:      status != nil || query != nil,
+			Online:      false,
 			Host:        host,
 			Port:        port,
 			EULABlocked: IsBlockedAddress(host),
@@ -318,97 +318,111 @@ func BuildJavaResponse(host string, port uint16, status interface{}, query *resp
 		JavaStatus: nil,
 	}
 
-	if status == nil && query == nil {
-		return
-	}
+	// Status
+	switch s := status.(type) {
+	case *response.JavaStatus:
+		{
+			if s == nil {
+				break
+			}
 
-	result.JavaStatus = &JavaStatus{
-		Players: JavaPlayers{
-			List: make([]Player, 0),
-		},
-		Mods:    make([]Mod, 0),
-		Plugins: make([]Plugin, 0),
-	}
+			result.Online = true
 
-	if status != nil {
-		switch s := status.(type) {
-		case *response.JavaStatus:
-			{
+			result.JavaStatus = &JavaStatus{
+				Version: &JavaVersion{
+					NameRaw:   s.Version.NameRaw,
+					NameClean: s.Version.NameClean,
+					NameHTML:  s.Version.NameHTML,
+					Protocol:  s.Version.Protocol,
+				},
+				Players: JavaPlayers{
+					Online: s.Players.Online,
+					Max:    s.Players.Max,
+					List:   make([]Player, 0),
+				},
+				MOTD: MOTD{
+					Raw:   s.MOTD.Raw,
+					Clean: s.MOTD.Clean,
+					HTML:  s.MOTD.HTML,
+				},
+				Icon:    s.Favicon,
+				Mods:    make([]Mod, 0),
+				Plugins: make([]Plugin, 0),
+			}
+
+			if s.Players.Sample != nil {
+				for _, player := range s.Players.Sample {
+					result.Players.List = append(result.Players.List, Player{
+						UUID:      player.ID,
+						NameRaw:   player.NameRaw,
+						NameClean: player.NameClean,
+						NameHTML:  player.NameHTML,
+					})
+				}
+			}
+
+			if s.ModInfo != nil {
+				for _, mod := range s.ModInfo.Mods {
+					result.Mods = append(result.Mods, Mod{
+						Name:    mod.ID,
+						Version: mod.Version,
+					})
+				}
+			}
+
+			break
+		}
+	case *response.JavaStatusLegacy:
+		{
+			if s == nil {
+				break
+			}
+
+			result.Online = true
+
+			result.JavaStatus = &JavaStatus{
+				Version: nil,
+				Players: JavaPlayers{
+					Online: &s.Players.Online,
+					Max:    &s.Players.Max,
+					List:   make([]Player, 0),
+				},
+				MOTD: MOTD{
+					Raw:   s.MOTD.Raw,
+					Clean: s.MOTD.Clean,
+					HTML:  s.MOTD.HTML,
+				},
+				Icon:    nil,
+				Mods:    make([]Mod, 0),
+				Plugins: make([]Plugin, 0),
+			}
+
+			if s.Version != nil {
 				result.Version = &JavaVersion{
 					NameRaw:   s.Version.NameRaw,
 					NameClean: s.Version.NameClean,
 					NameHTML:  s.Version.NameHTML,
 					Protocol:  s.Version.Protocol,
 				}
-
-				result.Players = JavaPlayers{
-					Online: s.Players.Online,
-					Max:    s.Players.Max,
-					List:   make([]Player, 0),
-				}
-
-				result.MOTD = MOTD{
-					Raw:   s.MOTD.Raw,
-					Clean: s.MOTD.Clean,
-					HTML:  s.MOTD.HTML,
-				}
-
-				result.Icon = s.Favicon
-
-				if s.Players.Sample != nil {
-					for _, player := range s.Players.Sample {
-						result.Players.List = append(result.Players.List, Player{
-							UUID:      player.ID,
-							NameRaw:   player.NameRaw,
-							NameClean: player.NameClean,
-							NameHTML:  player.NameHTML,
-						})
-					}
-				}
-
-				if s.ModInfo != nil {
-					for _, mod := range s.ModInfo.Mods {
-						result.Mods = append(result.Mods, Mod{
-							Name:    mod.ID,
-							Version: mod.Version,
-						})
-					}
-				}
-
-				break
 			}
-		case *response.JavaStatusLegacy:
-			{
-				if s.Version != nil {
-					result.Version = &JavaVersion{
-						NameRaw:   s.Version.NameRaw,
-						NameClean: s.Version.NameClean,
-						NameHTML:  s.Version.NameHTML,
-						Protocol:  s.Version.Protocol,
-					}
-				}
 
-				result.Players = JavaPlayers{
-					Online: &s.Players.Online,
-					Max:    &s.Players.Max,
-					List:   make([]Player, 0),
-				}
-
-				result.MOTD = MOTD{
-					Raw:   s.MOTD.Raw,
-					Clean: s.MOTD.Clean,
-					HTML:  s.MOTD.HTML,
-				}
-
-				break
-			}
-		default:
-			panic(fmt.Errorf("unknown status type: %T", status))
+			break
 		}
 	}
 
+	// Query
 	if query != nil {
-		if status == nil {
+		result.Online = true
+
+		if result.JavaStatus == nil {
+			result.JavaStatus = &JavaStatus{
+				Players: JavaPlayers{
+					List: make([]Player, 0),
+				},
+				Mods:    make([]Mod, 0),
+				Plugins: make([]Plugin, 0),
+			}
+
 			if motd, ok := query.Data["hostname"]; ok {
 				if parsedMOTD, err := description.ParseFormatting(motd); err == nil {
 					result.MOTD = MOTD{
@@ -435,16 +449,16 @@ func BuildJavaResponse(host string, port uint16, status interface{}, query *resp
 				}
 			}
 
-			for _, username := range query.Players {
-				parsedName, err := description.ParseFormatting(username)
+			if version, ok := query.Data["version"]; ok {
+				parsedValue, err := description.ParseFormatting(version)
 
 				if err == nil {
-					result.Players.List = append(result.Players.List, Player{
-						UUID:      "",
-						NameRaw:   parsedName.Raw,
-						NameClean: parsedName.Clean,
-						NameHTML:  parsedName.HTML,
-					})
+					result.Version = &JavaVersion{
+						NameRaw:   parsedValue.Raw,
+						NameClean: parsedValue.Clean,
+						NameHTML:  parsedValue.HTML,
+						Protocol:  0,
+					}
 				}
 			}
 		}
@@ -496,7 +510,7 @@ func BuildJavaResponse(host string, port uint16, status interface{}, query *resp
 func BuildBedrockResponse(host string, port uint16, status interface{}) (result BedrockStatusResponse) {
 	result = BedrockStatusResponse{
 		BaseStatus: BaseStatus{
-			Online:      true,
+			Online:      false,
 			Host:        host,
 			Port:        port,
 			EULABlocked: IsBlockedAddress(host),
@@ -506,13 +520,15 @@ func BuildBedrockResponse(host string, port uint16, status interface{}) (result 
 		BedrockStatus: nil,
 	}
 
-	if status == nil {
-		return
-	}
-
 	switch s := status.(type) {
 	case *response.BedrockStatus:
 		{
+			if s == nil {
+				break
+			}
+
+			result.Online = true
+
 			result.BedrockStatus = &BedrockStatus{
 				Version:  nil,
 				Players:  nil,
@@ -576,8 +592,6 @@ func BuildBedrockResponse(host string, port uint16, status interface{}) (result 
 
 			break
 		}
-	default:
-		panic(fmt.Errorf("unknown status type: %T", status))
 	}
 
 	return
