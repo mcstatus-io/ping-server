@@ -120,7 +120,18 @@ func SendVoteHandler(ctx *fiber.Ctx) error {
 
 	switch opts.Version {
 	case 1:
-		return ctx.Status(http.StatusNotImplemented).SendString("Votifier version 1 is currently not supported")
+		{
+			if err = mcutil.SendLegacyVote(opts.Host, opts.Port, options.LegacyVote{
+				PublicKey:   opts.PublicKey,
+				ServiceName: opts.ServiceName,
+				Username:    opts.Username,
+				IPAddress:   opts.IPAddress,
+				Timestamp:   opts.Timestamp,
+				Timeout:     time.Second * 5,
+			}); err != nil {
+				return ctx.Status(http.StatusBadRequest).SendString(err.Error())
+			}
+		}
 	case 2:
 		{
 			if err = mcutil.SendVote(opts.Host, opts.Port, options.Vote{

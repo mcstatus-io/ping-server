@@ -29,12 +29,14 @@ var (
 // VoteOptions is the options provided as query parameters to the vote route.
 type VoteOptions struct {
 	Version     int
+	IPAddress   string
 	Host        string
 	Port        uint16
 	ServiceName string
 	Username    string
 	UUID        string
 	Token       string
+	PublicKey   string
 	Timestamp   time.Time
 }
 
@@ -190,13 +192,27 @@ func ParseVoteOptions(ctx *fiber.Ctx) (*VoteOptions, error) {
 		// TODO check for properly formatted UUID
 	}
 
+	// Public Key
+	{
+		result.PublicKey = ctx.Query("publickey")
+
+		if result.Version == 1 && len(result.PublicKey) < 1 {
+			return nil, fmt.Errorf("invalid 'publickey' query parameter: %s", result.PublicKey)
+		}
+	}
+
 	// Token
 	{
 		result.Token = ctx.Query("token")
 
-		if len(result.Token) < 1 {
+		if result.Version == 2 && len(result.Token) < 1 {
 			return nil, fmt.Errorf("invalid 'token' query parameter: %s", result.Token)
 		}
+	}
+
+	// IP Address
+	{
+		result.IPAddress = ctx.Query("ip", ctx.IP())
 	}
 
 	// Timestamp

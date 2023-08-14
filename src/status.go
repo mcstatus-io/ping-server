@@ -189,27 +189,22 @@ func GetBedrockStatus(host string, port uint16) (*BedrockStatusResponse, time.Du
 		}
 	}
 
-	var (
-		err      error                  = nil
-		response *BedrockStatusResponse = nil
-		data     []byte                 = nil
-	)
-
 	// Fetch a fresh status from the server itself
 	{
-		response = FetchBedrockStatus(host, port)
+		response := FetchBedrockStatus(host, port)
 
-		if data, err = json.Marshal(response); err != nil {
+		data, err := json.Marshal(response)
+
+		if err != nil {
 			return nil, 0, err
 		}
-	}
 
-	// Put the status into the cache for future requests
-	if err = r.Set(fmt.Sprintf("bedrock:%s", cacheKey), data, conf.Cache.BedrockStatusDuration); err != nil {
-		return nil, 0, err
-	}
+		if err = r.Set(fmt.Sprintf("bedrock:%s", cacheKey), data, conf.Cache.BedrockStatusDuration); err != nil {
+			return nil, 0, err
+		}
 
-	return response, 0, nil
+		return &response, 0, nil
+	}
 }
 
 // GetServerIcon returns the icon image of a Java Edition server, either using cache or fetching a fresh image.
@@ -303,94 +298,10 @@ func FetchJavaStatus(host string, port uint16, enableQuery bool) JavaStatusRespo
 }
 
 // FetchBedrockStatus fetches a fresh status of a Bedrock Edition server.
-func FetchBedrockStatus(host string, port uint16) *BedrockStatusResponse {
-	status, err := mcutil.StatusBedrock(host, port)
+func FetchBedrockStatus(host string, port uint16) BedrockStatusResponse {
+	status, _ := mcutil.StatusBedrock(host, port)
 
-	if err != nil {
-		return &BedrockStatusResponse{
-			BaseStatus: BaseStatus{
-				Online:      false,
-				Host:        host,
-				Port:        port,
-				EULABlocked: IsBlockedAddress(host),
-				RetrievedAt: time.Now().UnixMilli(),
-				ExpiresAt:   time.Now().Add(conf.Cache.BedrockStatusDuration).UnixMilli(),
-			},
-		}
-	}
-
-	response := &BedrockStatusResponse{
-		BaseStatus: BaseStatus{
-			Online:      true,
-			Host:        host,
-			Port:        port,
-			EULABlocked: IsBlockedAddress(host),
-			RetrievedAt: time.Now().UnixMilli(),
-			ExpiresAt:   time.Now().Add(conf.Cache.BedrockStatusDuration).UnixMilli(),
-		},
-		BedrockStatus: &BedrockStatus{
-			Version:  nil,
-			Players:  nil,
-			MOTD:     nil,
-			Gamemode: status.Gamemode,
-			ServerID: status.ServerID,
-			Edition:  status.Edition,
-		},
-	}
-
-	if status.Version != nil {
-		if response.Version == nil {
-			response.Version = &BedrockVersion{
-				Name:     nil,
-				Protocol: nil,
-			}
-		}
-
-		response.Version.Name = status.Version
-	}
-
-	if status.ProtocolVersion != nil {
-		if response.Version == nil {
-			response.Version = &BedrockVersion{
-				Name:     nil,
-				Protocol: nil,
-			}
-		}
-
-		response.Version.Protocol = status.ProtocolVersion
-	}
-
-	if status.OnlinePlayers != nil {
-		if response.Players == nil {
-			response.Players = &BedrockPlayers{
-				Online: nil,
-				Max:    nil,
-			}
-		}
-
-		response.Players.Online = status.OnlinePlayers
-	}
-
-	if status.MaxPlayers != nil {
-		if response.Players == nil {
-			response.Players = &BedrockPlayers{
-				Online: nil,
-				Max:    nil,
-			}
-		}
-
-		response.Players.Max = status.MaxPlayers
-	}
-
-	if status.MOTD != nil {
-		response.MOTD = &MOTD{
-			Raw:   status.MOTD.Raw,
-			Clean: status.MOTD.Clean,
-			HTML:  status.MOTD.HTML,
-		}
-	}
-
-	return response
+	return BuildBedrockResponse(host, port, status)
 }
 
 // BuildJavaResponse builds the response data from the status and query information.
@@ -576,6 +487,97 @@ func BuildJavaResponse(host string, port uint16, status interface{}, query *resp
 				})
 			}
 		}
+	}
+
+	return
+}
+
+// BuildBedrockResponse builds the response data from the status information.
+func BuildBedrockResponse(host string, port uint16, status interface{}) (result BedrockStatusResponse) {
+	result = BedrockStatusResponse{
+		BaseStatus: BaseStatus{
+			Online:      true,
+			Host:        host,
+			Port:        port,
+			EULABlocked: IsBlockedAddress(host),
+			RetrievedAt: time.Now().UnixMilli(),
+			ExpiresAt:   time.Now().Add(conf.Cache.BedrockStatusDuration).UnixMilli(),
+		},
+		BedrockStatus: nil,
+	}
+
+	if status == nil {
+		return
+	}
+
+	switch s := status.(type) {
+	case *response.BedrockStatus:
+		{
+			result.BedrockStatus = &BedrockStatus{
+				Version:  nil,
+				Players:  nil,
+				MOTD:     nil,
+				Gamemode: s.Gamemode,
+				ServerID: s.ServerID,
+				Edition:  s.Edition,
+			}
+
+			if s.Version != nil {
+				if result.Version == nil {
+					result.Version = &BedrockVersion{
+						Name:     nil,
+						Protocol: nil,
+					}
+				}
+
+				result.Version.Name = s.Version
+			}
+
+			if s.ProtocolVersion != nil {
+				if result.Version == nil {
+					result.Version = &BedrockVersion{
+						Name:     nil,
+						Protocol: nil,
+					}
+				}
+
+				result.Version.Protocol = s.ProtocolVersion
+			}
+
+			if s.OnlinePlayers != nil {
+				if result.Players == nil {
+					result.Players = &BedrockPlayers{
+						Online: nil,
+						Max:    nil,
+					}
+				}
+
+				result.Players.Online = s.OnlinePlayers
+			}
+
+			if s.MaxPlayers != nil {
+				if result.Players == nil {
+					result.Players = &BedrockPlayers{
+						Online: nil,
+						Max:    nil,
+					}
+				}
+
+				result.Players.Max = s.MaxPlayers
+			}
+
+			if s.MOTD != nil {
+				result.MOTD = &MOTD{
+					Raw:   s.MOTD.Raw,
+					Clean: s.MOTD.Clean,
+					HTML:  s.MOTD.HTML,
+				}
+			}
+
+			break
+		}
+	default:
+		panic(fmt.Errorf("unknown status type: %T", status))
 	}
 
 	return
