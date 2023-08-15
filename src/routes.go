@@ -8,11 +8,31 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/mcstatus-io/mcutil"
 	"github.com/mcstatus-io/mcutil/options"
 )
 
 func init() {
+	app.Use(recover.New(recover.Config{
+		EnableStackTrace: true,
+	}))
+
+	if conf.Environment == "development" {
+		app.Use(cors.New(cors.Config{
+			AllowOrigins:  "*",
+			AllowMethods:  "HEAD,OPTIONS,GET",
+			ExposeHeaders: "X-Cache-Hit,X-Cache-Time-Remaining",
+		}))
+
+		app.Use(logger.New(logger.Config{
+			Format:     "${time} ${ip}:${port} -> ${status}: ${method} ${path} (${latency})\n",
+			TimeFormat: "2006/01/02 15:04:05",
+		}))
+	}
+
 	app.Get("/ping", PingHandler)
 	app.Get("/favicon.ico", FaviconHandler)
 	app.Get("/status/java/:address", JavaStatusHandler)
@@ -20,7 +40,6 @@ func init() {
 	app.Get("/icon", DefaultIconHandler)
 	app.Get("/icon/:address", IconHandler)
 	app.Post("/vote", SendVoteHandler)
-	app.Use(NotFoundHandler)
 }
 
 // PingHandler responds with a 200 OK status for simple health checks.
@@ -153,9 +172,4 @@ func SendVoteHandler(ctx *fiber.Ctx) error {
 // DefaultIconHandler returns the default server icon.
 func DefaultIconHandler(ctx *fiber.Ctx) error {
 	return ctx.Type("png").Send(assets.DefaultIcon)
-}
-
-// NotFoundHandler handles requests to routes that do not exist and returns a 404 Not Found status.
-func NotFoundHandler(ctx *fiber.Ctx) error {
-	return ctx.SendStatus(http.StatusNotFound)
 }
