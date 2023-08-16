@@ -164,7 +164,7 @@ func ParseVoteOptions(ctx *fiber.Ctx) (*VoteOptions, error) {
 
 	// Port
 	{
-		result.Port = uint16(ctx.QueryInt("host", 8192))
+		result.Port = uint16(ctx.QueryInt("port", 8192))
 	}
 
 	// Service Name
