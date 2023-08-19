@@ -62,12 +62,16 @@ func init() {
 	if instanceID, err = GetInstanceID(); err != nil {
 		panic(err)
 	}
+
+	app.Hooks().OnListen(func(ld fiber.ListenData) error {
+		log.Printf("Listening on %s:%d\n", conf.Host, conf.Port+instanceID)
+
+		return nil
+	})
 }
 
 func main() {
 	defer r.Close()
-
-	log.Printf("Listening on %s:%d\n", conf.Host, conf.Port+instanceID)
 
 	if err := app.Listen(fmt.Sprintf("%s:%d", conf.Host, conf.Port+instanceID)); err != nil {
 		panic(err)
