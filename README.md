@@ -4,37 +4,38 @@
 ![](https://img.shields.io/github/actions/workflow/status/mcstatus-io/ping-server/go.yml)
 ![](https://img.shields.io/uptimerobot/ratio/m792379047-190f2d39d31ecafa9b1f86ab)
 
-The status retrieval/ping server that powers the API for mcstatus.io. This repository is open source to allow developers to run their own Minecraft server status API server.
-
-If you do not know what you are doing, or think that the cache durations enforced on our official website are tolerable, I would highly recommend using the official API instead. It is much more reliable and reduces the complexity of hosting it yourself.
+This is the source code for the API of the [mcstatus.io](https://mcstatus.io) website (`api.mcstatus.io`). This API server is built using [Go](https://go.dev) with [Fiber](https://docs.gofiber.io/) as the HTTP server of choice. This uses a custom Minecraft utility library found in the [mcstatus-io/mcutil](https://github.com/mcstatus-io/mcutil) repository. You are free to modify and host your own copy of this server as long as the [license](https://github.com/mcstatus-io/ping-server/blob/main/LICENSE) permits. If you do not wish to self host, we host a public and free-to-use copy which you may learn more about by visiting the [official API documentation](https://mcstatus.io/docs).
 
 ## API Documentation
 
 https://mcstatus.io/docs
 
-## Prerequisites
+## Requirements
 
-- [Git](https://git-scm.com/)
 - [Go](https://go.dev/)
-- [Redis](https://redis.io/) (optional)
-- [GNU Make](https://www.gnu.org/software/make/) (optional)
+- [Redis](https://redis.io/)
+- [GNU Make](https://www.gnu.org/software/make/)
 
-## Installation
+## Getting Started
 
-1. Clone the repository to a folder
-    - `git clone https://github.com/mcstatus-io/ping-server.git`
-2. Move the working directory into the folder
-    - `cd ping-server`
-3. Build the executable
-    - Using GNU make
-        - `make`
-    - Without GNU make
-        - `go build -o .\bin\main.exe .\src\*.go` (Windows)
-        - `go build -o bin/main src/*.go` (Linux/macOS)
-4. Copy the `config.example.yml` file to `config.yml` and edit the details
-5. Start the API server
-    - `.\bin\main.exe` (Windows)
-    - `bin/main` (Linux/macOS)
+```bash
+# 1. Clone the repository (or download from this page)
+$ git clone https://github.com/mcstatus-io/ping-server.git
+
+# 2. Move the working directory into the cloned repository
+$ cd ping-server
+
+# 3. Run the build script
+$ make
+
+# 4. Copy the `config.example.yml` file to `config.yml` and modify details as needed
+$ cp config.example.yml config.yml
+
+# 5. Start the development server
+$ ./bin/main
+
+# The server will be listening on http://localhost:3001 (default host + port)
+```
 
 ## License
 
