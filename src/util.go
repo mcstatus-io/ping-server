@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"net/http"
 	"net/url"
 	"os"
@@ -38,6 +39,13 @@ type VoteOptions struct {
 	Token       string
 	PublicKey   string
 	Timestamp   time.Time
+	Timeout     time.Duration
+}
+
+// StatusOptions is the options provided as query parameters to the status route.
+type StatusOptions struct {
+	Query   bool
+	Timeout time.Duration
 }
 
 // MutexArray is a thread-safe array for storing and retrieving values.
@@ -140,8 +148,8 @@ func ParseAddress(address string, defaultPort uint16) (string, uint16, error) {
 	return host, uint16(port), nil
 }
 
-// ParseVoteOptions parses the vote options from the provided query parameters.
-func ParseVoteOptions(ctx *fiber.Ctx) (*VoteOptions, error) {
+// GetVoteOptions parses the vote options from the provided query parameters.
+func GetVoteOptions(ctx *fiber.Ctx) (*VoteOptions, error) {
 	result := VoteOptions{}
 
 	// Version
@@ -232,7 +240,28 @@ func ParseVoteOptions(ctx *fiber.Ctx) (*VoteOptions, error) {
 		}
 	}
 
+	// Timeout
+	{
+		result.Timeout = time.Duration(math.Max(float64(time.Second)*ctx.QueryFloat("timeout", 5.0), float64(time.Millisecond*250)))
+	}
+
 	return &result, nil
+}
+
+func GetStatusOptions(ctx *fiber.Ctx) (*StatusOptions, error) {
+	result := &StatusOptions{}
+
+	// Query
+	{
+		result.Query = ctx.QueryBool("query", true)
+	}
+
+	// Timeout
+	{
+		result.Timeout = time.Duration(math.Max(float64(time.Second)*ctx.QueryFloat("timeout", 5.0), float64(time.Millisecond*500)))
+	}
+
+	return result, nil
 }
 
 // GetInstanceID returns the INSTANCE_ID environment variable parsed as an unsigned 16-bit integer.
@@ -251,11 +280,14 @@ func GetInstanceID() (uint16, error) {
 }
 
 // GetCacheKey generates a unique key used for caching status results in Redis.
-func GetCacheKey(host string, port uint16, query bool) string {
+func GetCacheKey(host string, port uint16, opts *StatusOptions) string {
 	values := &url.Values{}
 	values.Set("host", host)
 	values.Set("port", strconv.FormatUint(uint64(port), 10))
-	values.Set("query", strconv.FormatBool(query))
+
+	if opts != nil {
+		values.Set("query", strconv.FormatBool(opts.Query))
+	}
 
 	return SHA256(values.Encode())
 }

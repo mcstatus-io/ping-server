@@ -1,18 +1,18 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"main/src/assets"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
-	"github.com/mcstatus-io/mcutil"
-	"github.com/mcstatus-io/mcutil/options"
+	"github.com/mcstatus-io/mcutil/v2"
+	"github.com/mcstatus-io/mcutil/v2/options"
 )
 
 func init() {
@@ -54,6 +54,12 @@ func FaviconHandler(ctx *fiber.Ctx) error {
 
 // JavaStatusHandler returns the status of the Java edition Minecraft server specified in the address parameter.
 func JavaStatusHandler(ctx *fiber.Ctx) error {
+	opts, err := GetStatusOptions(ctx)
+
+	if err != nil {
+		return err
+	}
+
 	host, port, err := ParseAddress(ctx.Params("address"), 25565)
 
 	if err != nil {
@@ -64,7 +70,7 @@ func JavaStatusHandler(ctx *fiber.Ctx) error {
 		return err
 	}
 
-	response, expiresAt, err := GetJavaStatus(host, port, ctx.QueryBool("query", true))
+	response, expiresAt, err := GetJavaStatus(host, port, opts)
 
 	if err != nil {
 		return err
@@ -81,6 +87,12 @@ func JavaStatusHandler(ctx *fiber.Ctx) error {
 
 // BedrockStatusHandler returns the status of the Bedrock edition Minecraft server specified in the address parameter.
 func BedrockStatusHandler(ctx *fiber.Ctx) error {
+	opts, err := GetStatusOptions(ctx)
+
+	if err != nil {
+		return err
+	}
+
 	host, port, err := ParseAddress(ctx.Params("address"), 19132)
 
 	if err != nil {
@@ -91,7 +103,7 @@ func BedrockStatusHandler(ctx *fiber.Ctx) error {
 		return err
 	}
 
-	response, expiresAt, err := GetBedrockStatus(host, port)
+	response, expiresAt, err := GetBedrockStatus(host, port, opts)
 
 	if err != nil {
 		return err
@@ -108,13 +120,19 @@ func BedrockStatusHandler(ctx *fiber.Ctx) error {
 
 // IconHandler returns the server icon for the specified Java edition Minecraft server.
 func IconHandler(ctx *fiber.Ctx) error {
+	opts, err := GetStatusOptions(ctx)
+
+	if err != nil {
+		return err
+	}
+
 	host, port, err := ParseAddress(ctx.Params("address"), 25565)
 
 	if err != nil {
 		return ctx.Status(http.StatusBadRequest).SendString("Invalid address value")
 	}
 
-	icon, expiresAt, err := GetServerIcon(host, port)
+	icon, expiresAt, err := GetServerIcon(host, port, opts)
 
 	if err != nil {
 		return err
@@ -131,7 +149,7 @@ func IconHandler(ctx *fiber.Ctx) error {
 
 // SendVoteHandler allows sending of Votifier votes to the specified server.
 func SendVoteHandler(ctx *fiber.Ctx) error {
-	opts, err := ParseVoteOptions(ctx)
+	opts, err := GetVoteOptions(ctx)
 
 	if err != nil {
 		return ctx.Status(http.StatusBadRequest).SendString(err.Error())
@@ -140,26 +158,34 @@ func SendVoteHandler(ctx *fiber.Ctx) error {
 	switch opts.Version {
 	case 1:
 		{
-			if err = mcutil.SendLegacyVote(opts.Host, opts.Port, options.LegacyVote{
+			c, cancel := context.WithTimeout(context.Background(), opts.Timeout)
+
+			defer cancel()
+
+			if err = mcutil.SendLegacyVote(c, opts.Host, opts.Port, options.LegacyVote{
 				PublicKey:   opts.PublicKey,
 				ServiceName: opts.ServiceName,
 				Username:    opts.Username,
 				IPAddress:   opts.IPAddress,
 				Timestamp:   opts.Timestamp,
-				Timeout:     time.Second * 5,
+				Timeout:     opts.Timeout,
 			}); err != nil {
 				return ctx.Status(http.StatusBadRequest).SendString(err.Error())
 			}
 		}
 	case 2:
 		{
-			if err = mcutil.SendVote(opts.Host, opts.Port, options.Vote{
+			c, cancel := context.WithTimeout(context.Background(), opts.Timeout)
+
+			defer cancel()
+
+			if err = mcutil.SendVote(c, opts.Host, opts.Port, options.Vote{
 				ServiceName: opts.ServiceName,
 				Username:    opts.Username,
 				Token:       opts.Token,
 				UUID:        opts.UUID,
 				Timestamp:   opts.Timestamp,
-				Timeout:     time.Second * 5,
+				Timeout:     opts.Timeout,
 			}); err != nil {
 				return ctx.Status(http.StatusBadRequest).SendString(err.Error())
 			}

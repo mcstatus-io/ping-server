@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -10,10 +11,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mcstatus-io/mcutil"
-	"github.com/mcstatus-io/mcutil/description"
-	"github.com/mcstatus-io/mcutil/options"
-	"github.com/mcstatus-io/mcutil/response"
+	"github.com/mcstatus-io/mcutil/v2"
+	"github.com/mcstatus-io/mcutil/v2/formatting"
+	"github.com/mcstatus-io/mcutil/v2/options"
+	"github.com/mcstatus-io/mcutil/v2/response"
 )
 
 // BaseStatus is the base response properties for returning any status response from the API.
@@ -114,8 +115,8 @@ type Plugin struct {
 }
 
 // GetJavaStatus returns the status response of a Java Edition server, either using cache or fetching a fresh status.
-func GetJavaStatus(host string, port uint16, query bool) (*JavaStatusResponse, time.Duration, error) {
-	cacheKey := GetCacheKey(host, port, query)
+func GetJavaStatus(host string, port uint16, opts *StatusOptions) (*JavaStatusResponse, time.Duration, error) {
+	cacheKey := GetCacheKey(host, port, opts)
 
 	// Wait for any other processes to finish fetching the status of this server
 	if conf.Cache.EnableLocks {
@@ -144,7 +145,7 @@ func GetJavaStatus(host string, port uint16, query bool) (*JavaStatusResponse, t
 
 	// Fetch a fresh status from the server itself
 	{
-		response := FetchJavaStatus(host, port, query)
+		response := FetchJavaStatus(host, port, opts)
 
 		data, err := json.Marshal(response)
 
@@ -161,8 +162,8 @@ func GetJavaStatus(host string, port uint16, query bool) (*JavaStatusResponse, t
 }
 
 // GetBedrockStatus returns the status response of a Bedrock Edition server, either using cache or fetching a fresh status.
-func GetBedrockStatus(host string, port uint16) (*BedrockStatusResponse, time.Duration, error) {
-	cacheKey := GetCacheKey(host, port, false)
+func GetBedrockStatus(host string, port uint16, opts *StatusOptions) (*BedrockStatusResponse, time.Duration, error) {
+	cacheKey := GetCacheKey(host, port, nil)
 
 	// Wait for any other processes to finish fetching the status of this server
 	if conf.Cache.EnableLocks {
@@ -191,7 +192,7 @@ func GetBedrockStatus(host string, port uint16) (*BedrockStatusResponse, time.Du
 
 	// Fetch a fresh status from the server itself
 	{
-		response := FetchBedrockStatus(host, port)
+		response := FetchBedrockStatus(host, port, opts)
 
 		data, err := json.Marshal(response)
 
@@ -208,8 +209,8 @@ func GetBedrockStatus(host string, port uint16) (*BedrockStatusResponse, time.Du
 }
 
 // GetServerIcon returns the icon image of a Java Edition server, either using cache or fetching a fresh image.
-func GetServerIcon(host string, port uint16) ([]byte, time.Duration, error) {
-	cacheKey := GetCacheKey(host, port, false)
+func GetServerIcon(host string, port uint16, opts *StatusOptions) ([]byte, time.Duration, error) {
+	cacheKey := GetCacheKey(host, port, nil)
 
 	// Fetch the cached icon if it exists
 	{
@@ -230,7 +231,11 @@ func GetServerIcon(host string, port uint16) ([]byte, time.Duration, error) {
 
 	// Fetch the icon from the server itself
 	{
-		status, err := mcutil.Status(host, port)
+		ctx, cancel := context.WithTimeout(context.Background(), opts.Timeout)
+
+		defer cancel()
+
+		status, err := mcutil.Status(ctx, host, port)
 
 		if err == nil && status.Favicon != nil && strings.HasPrefix(*status.Favicon, "data:image/png;base64,") {
 			data, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(*status.Favicon, "data:image/png;base64,"))
@@ -254,38 +259,74 @@ func GetServerIcon(host string, port uint16) ([]byte, time.Duration, error) {
 }
 
 // FetchJavaStatus fetches fresh information about a Java Edition Minecraft server.
-func FetchJavaStatus(host string, port uint16, enableQuery bool) JavaStatusResponse {
+func FetchJavaStatus(host string, port uint16, opts *StatusOptions) JavaStatusResponse {
 	var wg sync.WaitGroup
 
-	wg.Add(1)
+	wg.Add(2)
 
-	if enableQuery {
+	if opts.Query {
 		wg.Add(1)
 	}
 
+	statusContext, statusCancel := context.WithTimeout(context.Background(), opts.Timeout)
+	legacyContext, legacyCancel := context.WithTimeout(context.Background(), opts.Timeout)
+	queryContext, queryCancel := context.WithTimeout(context.Background(), opts.Timeout)
+
+	defer statusCancel()
+	defer legacyCancel()
+	defer queryCancel()
+
 	var (
-		statusResult interface{}         = nil
-		queryResult  *response.FullQuery = nil
+		statusResult       *response.JavaStatus       = nil
+		legacyStatusResult *response.JavaStatusLegacy = nil
+		queryResult        *response.FullQuery        = nil
 	)
 
 	// Status
 	{
 		go func() {
-			if result, _ := mcutil.Status(host, port); result != nil {
-				statusResult = result
-			} else if result, _ := mcutil.StatusLegacy(host, port); result != nil {
+			if result, _ := mcutil.Status(statusContext, host, port, options.JavaStatus{
+				Timeout: opts.Timeout - time.Millisecond*100,
+			}); result != nil {
 				statusResult = result
 			}
 
 			wg.Done()
+
+			legacyCancel()
+
+			time.Sleep(time.Millisecond * 250)
+
+			if queryResult == nil {
+				queryCancel()
+			}
+		}()
+	}
+
+	// Legacy Status
+	{
+		go func() {
+			if result, _ := mcutil.StatusLegacy(legacyContext, host, port, options.JavaStatusLegacy{
+				Timeout: opts.Timeout - time.Millisecond*100,
+			}); result != nil {
+				legacyStatusResult = result
+			}
+
+			wg.Done()
+
+			time.Sleep(time.Millisecond * 250)
+
+			if queryResult == nil {
+				queryCancel()
+			}
 		}()
 	}
 
 	// Query
-	if enableQuery {
+	if opts.Query {
 		go func() {
-			queryResult, _ = mcutil.FullQuery(host, port, options.Query{
-				Timeout: time.Second,
+			queryResult, _ = mcutil.FullQuery(queryContext, host, port, options.Query{
+				Timeout: opts.Timeout - time.Millisecond*100,
 			})
 
 			wg.Done()
@@ -294,18 +335,22 @@ func FetchJavaStatus(host string, port uint16, enableQuery bool) JavaStatusRespo
 
 	wg.Wait()
 
-	return BuildJavaResponse(host, port, statusResult, queryResult)
+	return BuildJavaResponse(host, port, statusResult, legacyStatusResult, queryResult)
 }
 
 // FetchBedrockStatus fetches a fresh status of a Bedrock Edition server.
-func FetchBedrockStatus(host string, port uint16) BedrockStatusResponse {
-	status, _ := mcutil.StatusBedrock(host, port)
+func FetchBedrockStatus(host string, port uint16, opts *StatusOptions) BedrockStatusResponse {
+	ctx, cancel := context.WithTimeout(context.Background(), opts.Timeout)
+
+	defer cancel()
+
+	status, _ := mcutil.StatusBedrock(ctx, host, port)
 
 	return BuildBedrockResponse(host, port, status)
 }
 
 // BuildJavaResponse builds the response data from the status and query information.
-func BuildJavaResponse(host string, port uint16, status interface{}, query *response.FullQuery) (result JavaStatusResponse) {
+func BuildJavaResponse(host string, port uint16, status *response.JavaStatus, legacyStatus *response.JavaStatusLegacy, query *response.FullQuery) (result JavaStatusResponse) {
 	result = JavaStatusResponse{
 		BaseStatus: BaseStatus{
 			Online:      false,
@@ -319,94 +364,77 @@ func BuildJavaResponse(host string, port uint16, status interface{}, query *resp
 	}
 
 	// Status
-	switch s := status.(type) {
-	case *response.JavaStatus:
-		{
-			if s == nil {
-				break
-			}
+	if status != nil {
+		result.Online = true
 
-			result.Online = true
-
-			result.JavaStatus = &JavaStatus{
-				Version: &JavaVersion{
-					NameRaw:   s.Version.NameRaw,
-					NameClean: s.Version.NameClean,
-					NameHTML:  s.Version.NameHTML,
-					Protocol:  s.Version.Protocol,
-				},
-				Players: JavaPlayers{
-					Online: s.Players.Online,
-					Max:    s.Players.Max,
-					List:   make([]Player, 0),
-				},
-				MOTD: MOTD{
-					Raw:   s.MOTD.Raw,
-					Clean: s.MOTD.Clean,
-					HTML:  s.MOTD.HTML,
-				},
-				Icon:    s.Favicon,
-				Mods:    make([]Mod, 0),
-				Plugins: make([]Plugin, 0),
-			}
-
-			if s.Players.Sample != nil {
-				for _, player := range s.Players.Sample {
-					result.Players.List = append(result.Players.List, Player{
-						UUID:      player.ID,
-						NameRaw:   player.NameRaw,
-						NameClean: player.NameClean,
-						NameHTML:  player.NameHTML,
-					})
-				}
-			}
-
-			if s.ModInfo != nil {
-				for _, mod := range s.ModInfo.Mods {
-					result.Mods = append(result.Mods, Mod{
-						Name:    mod.ID,
-						Version: mod.Version,
-					})
-				}
-			}
-
-			break
+		result.JavaStatus = &JavaStatus{
+			Version: &JavaVersion{
+				NameRaw:   status.Version.NameRaw,
+				NameClean: status.Version.NameClean,
+				NameHTML:  status.Version.NameHTML,
+				Protocol:  status.Version.Protocol,
+			},
+			Players: JavaPlayers{
+				Online: status.Players.Online,
+				Max:    status.Players.Max,
+				List:   make([]Player, 0),
+			},
+			MOTD: MOTD{
+				Raw:   status.MOTD.Raw,
+				Clean: status.MOTD.Clean,
+				HTML:  status.MOTD.HTML,
+			},
+			Icon:    status.Favicon,
+			Mods:    make([]Mod, 0),
+			Plugins: make([]Plugin, 0),
 		}
-	case *response.JavaStatusLegacy:
-		{
-			if s == nil {
-				break
+
+		if status.Players.Sample != nil {
+			for _, player := range status.Players.Sample {
+				result.Players.List = append(result.Players.List, Player{
+					UUID:      player.ID,
+					NameRaw:   player.NameRaw,
+					NameClean: player.NameClean,
+					NameHTML:  player.NameHTML,
+				})
 			}
+		}
 
-			result.Online = true
-
-			result.JavaStatus = &JavaStatus{
-				Version: nil,
-				Players: JavaPlayers{
-					Online: &s.Players.Online,
-					Max:    &s.Players.Max,
-					List:   make([]Player, 0),
-				},
-				MOTD: MOTD{
-					Raw:   s.MOTD.Raw,
-					Clean: s.MOTD.Clean,
-					HTML:  s.MOTD.HTML,
-				},
-				Icon:    nil,
-				Mods:    make([]Mod, 0),
-				Plugins: make([]Plugin, 0),
+		if status.ModInfo != nil {
+			for _, mod := range status.ModInfo.Mods {
+				result.Mods = append(result.Mods, Mod{
+					Name:    mod.ID,
+					Version: mod.Version,
+				})
 			}
+		}
+	} else if legacyStatus != nil {
+		result.Online = true
 
-			if s.Version != nil {
-				result.Version = &JavaVersion{
-					NameRaw:   s.Version.NameRaw,
-					NameClean: s.Version.NameClean,
-					NameHTML:  s.Version.NameHTML,
-					Protocol:  s.Version.Protocol,
-				}
+		result.JavaStatus = &JavaStatus{
+			Version: nil,
+			Players: JavaPlayers{
+				Online: &legacyStatus.Players.Online,
+				Max:    &legacyStatus.Players.Max,
+				List:   make([]Player, 0),
+			},
+			MOTD: MOTD{
+				Raw:   legacyStatus.MOTD.Raw,
+				Clean: legacyStatus.MOTD.Clean,
+				HTML:  legacyStatus.MOTD.HTML,
+			},
+			Icon:    nil,
+			Mods:    make([]Mod, 0),
+			Plugins: make([]Plugin, 0),
+		}
+
+		if legacyStatus.Version != nil {
+			result.Version = &JavaVersion{
+				NameRaw:   legacyStatus.Version.NameRaw,
+				NameClean: legacyStatus.Version.NameClean,
+				NameHTML:  legacyStatus.Version.NameHTML,
+				Protocol:  legacyStatus.Version.Protocol,
 			}
-
-			break
 		}
 	}
 
@@ -424,7 +452,7 @@ func BuildJavaResponse(host string, port uint16, status interface{}, query *resp
 			}
 
 			if motd, ok := query.Data["hostname"]; ok {
-				if parsedMOTD, err := description.ParseFormatting(motd); err == nil {
+				if parsedMOTD, err := formatting.Parse(motd); err == nil {
 					result.MOTD = MOTD{
 						Raw:   parsedMOTD.Raw,
 						Clean: parsedMOTD.Clean,
@@ -450,7 +478,7 @@ func BuildJavaResponse(host string, port uint16, status interface{}, query *resp
 			}
 
 			if version, ok := query.Data["version"]; ok {
-				parsedValue, err := description.ParseFormatting(version)
+				parsedValue, err := formatting.Parse(version)
 
 				if err == nil {
 					result.Version = &JavaVersion{
@@ -490,7 +518,7 @@ func BuildJavaResponse(host string, port uint16, status interface{}, query *resp
 				continue
 			}
 
-			parsedName, err := description.ParseFormatting(username)
+			parsedName, err := formatting.Parse(username)
 
 			if err == nil {
 				result.Players.List = append(result.Players.List, Player{
@@ -507,7 +535,7 @@ func BuildJavaResponse(host string, port uint16, status interface{}, query *resp
 }
 
 // BuildBedrockResponse builds the response data from the status information.
-func BuildBedrockResponse(host string, port uint16, status interface{}) (result BedrockStatusResponse) {
+func BuildBedrockResponse(host string, port uint16, status *response.BedrockStatus) (result BedrockStatusResponse) {
 	result = BedrockStatusResponse{
 		BaseStatus: BaseStatus{
 			Online:      false,
@@ -520,77 +548,68 @@ func BuildBedrockResponse(host string, port uint16, status interface{}) (result 
 		BedrockStatus: nil,
 	}
 
-	switch s := status.(type) {
-	case *response.BedrockStatus:
-		{
-			if s == nil {
-				break
-			}
+	if status != nil {
+		result.Online = true
 
-			result.Online = true
+		result.BedrockStatus = &BedrockStatus{
+			Version:  nil,
+			Players:  nil,
+			MOTD:     nil,
+			Gamemode: status.Gamemode,
+			ServerID: status.ServerID,
+			Edition:  status.Edition,
+		}
 
-			result.BedrockStatus = &BedrockStatus{
-				Version:  nil,
-				Players:  nil,
-				MOTD:     nil,
-				Gamemode: s.Gamemode,
-				ServerID: s.ServerID,
-				Edition:  s.Edition,
-			}
-
-			if s.Version != nil {
-				if result.Version == nil {
-					result.Version = &BedrockVersion{
-						Name:     nil,
-						Protocol: nil,
-					}
-				}
-
-				result.Version.Name = s.Version
-			}
-
-			if s.ProtocolVersion != nil {
-				if result.Version == nil {
-					result.Version = &BedrockVersion{
-						Name:     nil,
-						Protocol: nil,
-					}
-				}
-
-				result.Version.Protocol = s.ProtocolVersion
-			}
-
-			if s.OnlinePlayers != nil {
-				if result.Players == nil {
-					result.Players = &BedrockPlayers{
-						Online: nil,
-						Max:    nil,
-					}
-				}
-
-				result.Players.Online = s.OnlinePlayers
-			}
-
-			if s.MaxPlayers != nil {
-				if result.Players == nil {
-					result.Players = &BedrockPlayers{
-						Online: nil,
-						Max:    nil,
-					}
-				}
-
-				result.Players.Max = s.MaxPlayers
-			}
-
-			if s.MOTD != nil {
-				result.MOTD = &MOTD{
-					Raw:   s.MOTD.Raw,
-					Clean: s.MOTD.Clean,
-					HTML:  s.MOTD.HTML,
+		if status.Version != nil {
+			if result.Version == nil {
+				result.Version = &BedrockVersion{
+					Name:     nil,
+					Protocol: nil,
 				}
 			}
 
-			break
+			result.Version.Name = status.Version
+		}
+
+		if status.ProtocolVersion != nil {
+			if result.Version == nil {
+				result.Version = &BedrockVersion{
+					Name:     nil,
+					Protocol: nil,
+				}
+			}
+
+			result.Version.Protocol = status.ProtocolVersion
+		}
+
+		if status.OnlinePlayers != nil {
+			if result.Players == nil {
+				result.Players = &BedrockPlayers{
+					Online: nil,
+					Max:    nil,
+				}
+			}
+
+			result.Players.Online = status.OnlinePlayers
+		}
+
+		if status.MaxPlayers != nil {
+			if result.Players == nil {
+				result.Players = &BedrockPlayers{
+					Online: nil,
+					Max:    nil,
+				}
+			}
+
+			result.Players.Max = status.MaxPlayers
+		}
+
+		if status.MOTD != nil {
+			result.MOTD = &MOTD{
+				Raw:   status.MOTD.Raw,
+				Clean: status.MOTD.Clean,
+				HTML:  status.MOTD.HTML,
+			}
 		}
 	}
 
