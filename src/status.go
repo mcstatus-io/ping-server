@@ -285,11 +285,10 @@ func FetchJavaStatus(host string, port uint16, opts *StatusOptions) JavaStatusRe
 	// Status
 	{
 		go func() {
-			if result, _ := mcutil.Status(statusContext, host, port, options.JavaStatus{
-				Timeout: opts.Timeout - time.Millisecond*100,
-			}); result != nil {
-				statusResult = result
-			}
+			statusResult, _ = mcutil.Status(statusContext, host, port, options.JavaStatus{
+				EnableSRV: true,
+				Timeout:   opts.Timeout - time.Millisecond*100,
+			})
 
 			wg.Done()
 
@@ -306,11 +305,10 @@ func FetchJavaStatus(host string, port uint16, opts *StatusOptions) JavaStatusRe
 	// Legacy Status
 	{
 		go func() {
-			if result, _ := mcutil.StatusLegacy(legacyContext, host, port, options.JavaStatusLegacy{
-				Timeout: opts.Timeout - time.Millisecond*100,
-			}); result != nil {
-				legacyStatusResult = result
-			}
+			legacyStatusResult, _ = mcutil.StatusLegacy(legacyContext, host, port, options.JavaStatusLegacy{
+				EnableSRV: true,
+				Timeout:   opts.Timeout - time.Millisecond*100,
+			})
 
 			wg.Done()
 
