@@ -127,7 +127,7 @@ func GetJavaStatus(host string, port uint16, opts *StatusOptions) (*JavaStatusRe
 	cacheKey := GetCacheKey(host, port, opts)
 
 	// Wait for any other processes to finish fetching the status of this server
-	if conf.Cache.EnableLocks {
+	if config.Cache.EnableLocks {
 		mutex := r.NewMutex(fmt.Sprintf("java-lock:%s", cacheKey))
 		mutex.Lock()
 
@@ -161,7 +161,7 @@ func GetJavaStatus(host string, port uint16, opts *StatusOptions) (*JavaStatusRe
 			return nil, 0, err
 		}
 
-		if err := r.Set(fmt.Sprintf("java:%s", cacheKey), data, conf.Cache.JavaStatusDuration); err != nil {
+		if err := r.Set(fmt.Sprintf("java:%s", cacheKey), data, config.Cache.JavaStatusDuration); err != nil {
 			return nil, 0, err
 		}
 
@@ -174,7 +174,7 @@ func GetBedrockStatus(host string, port uint16, opts *StatusOptions) (*BedrockSt
 	cacheKey := GetCacheKey(host, port, nil)
 
 	// Wait for any other processes to finish fetching the status of this server
-	if conf.Cache.EnableLocks {
+	if config.Cache.EnableLocks {
 		mutex := r.NewMutex(fmt.Sprintf("bedrock-lock:%s", cacheKey))
 		mutex.Lock()
 
@@ -208,7 +208,7 @@ func GetBedrockStatus(host string, port uint16, opts *StatusOptions) (*BedrockSt
 			return nil, 0, err
 		}
 
-		if err = r.Set(fmt.Sprintf("bedrock:%s", cacheKey), data, conf.Cache.BedrockStatusDuration); err != nil {
+		if err = r.Set(fmt.Sprintf("bedrock:%s", cacheKey), data, config.Cache.BedrockStatusDuration); err != nil {
 			return nil, 0, err
 		}
 
@@ -259,7 +259,7 @@ func GetServerIcon(host string, port uint16, opts *StatusOptions) ([]byte, time.
 	}
 
 	// Put the icon into the cache for future requests
-	if err := r.Set(fmt.Sprintf("icon:%s", cacheKey), icon, conf.Cache.IconDuration); err != nil {
+	if err := r.Set(fmt.Sprintf("icon:%s", cacheKey), icon, config.Cache.IconDuration); err != nil {
 		return nil, 0, err
 	}
 
@@ -380,7 +380,7 @@ func BuildJavaResponse(host string, port uint16, status *response.JavaStatus, le
 			Port:        port,
 			EULABlocked: IsBlockedAddress(host),
 			RetrievedAt: time.Now().UnixMilli(),
-			ExpiresAt:   time.Now().Add(conf.Cache.JavaStatusDuration).UnixMilli(),
+			ExpiresAt:   time.Now().Add(config.Cache.JavaStatusDuration).UnixMilli(),
 		},
 		JavaStatus: nil,
 	}
@@ -572,7 +572,7 @@ func BuildBedrockResponse(host string, port uint16, status *response.BedrockStat
 			Port:        port,
 			EULABlocked: IsBlockedAddress(host),
 			RetrievedAt: time.Now().UnixMilli(),
-			ExpiresAt:   time.Now().Add(conf.Cache.BedrockStatusDuration).UnixMilli(),
+			ExpiresAt:   time.Now().Add(config.Cache.BedrockStatusDuration).UnixMilli(),
 		},
 		BedrockStatus: nil,
 	}

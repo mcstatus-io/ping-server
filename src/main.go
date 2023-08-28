@@ -26,18 +26,18 @@ var (
 		},
 	})
 	r          *Redis  = &Redis{}
-	conf       *Config = DefaultConfig
+	config     *Config = DefaultConfig
 	instanceID uint16  = 0
 )
 
 func init() {
 	var err error
 
-	if err = conf.ReadFile("config.yml"); err != nil {
+	if err = config.ReadFile("config.yml"); err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			log.Printf("config.yml does not exist, writing default config\n")
 
-			if err = conf.WriteFile("config.yml"); err != nil {
+			if err = config.WriteFile("config.yml"); err != nil {
 				log.Fatalf("Failed to write config file: %v", err)
 			}
 		} else {
@@ -51,7 +51,7 @@ func init() {
 
 	log.Println("Successfully retrieved EULA blocked servers")
 
-	if conf.Redis != nil {
+	if config.Redis != nil {
 		if err = r.Connect(); err != nil {
 			log.Fatalf("Failed to connect to Redis: %v", err)
 		}
@@ -64,7 +64,7 @@ func init() {
 	}
 
 	app.Hooks().OnListen(func(ld fiber.ListenData) error {
-		log.Printf("Listening on %s:%d\n", conf.Host, conf.Port+instanceID)
+		log.Printf("Listening on %s:%d\n", config.Host, config.Port+instanceID)
 
 		return nil
 	})
@@ -73,7 +73,7 @@ func init() {
 func main() {
 	defer r.Close()
 
-	if err := app.Listen(fmt.Sprintf("%s:%d", conf.Host, conf.Port+instanceID)); err != nil {
+	if err := app.Listen(fmt.Sprintf("%s:%d", config.Host, config.Port+instanceID)); err != nil {
 		panic(err)
 	}
 }

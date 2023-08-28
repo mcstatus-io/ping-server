@@ -22,7 +22,7 @@ type Redis struct {
 
 // Connect establishes a connection to the Redis server using the configuration.
 func (r *Redis) Connect() error {
-	if conf.Redis == nil {
+	if config.Redis == nil {
 		return errors.New("missing Redis configuration")
 	}
 
@@ -30,7 +30,7 @@ func (r *Redis) Connect() error {
 
 	defer cancel()
 
-	opts, err := redis.ParseURL(*conf.Redis)
+	opts, err := redis.ParseURL(*config.Redis)
 
 	if err != nil {
 		return err

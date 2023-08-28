@@ -68,7 +68,6 @@ func (c *Config) WriteFile(file string) error {
 	return os.WriteFile(file, data, 0777)
 }
 
-// overrideWithEnvVars overrides configuration values using environment variables.
 func (c *Config) overrideWithEnvVars() error {
 	if value := os.Getenv("ENVIRONMENT"); value != "" {
 		c.Environment = value

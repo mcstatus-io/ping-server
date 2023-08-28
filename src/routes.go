@@ -9,6 +9,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/favicon"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/mcstatus-io/mcutil/v2"
@@ -20,7 +21,11 @@ func init() {
 		EnableStackTrace: true,
 	}))
 
-	if conf.Environment == "development" {
+	app.Use(favicon.New(favicon.Config{
+		Data: assets.Favicon,
+	}))
+
+	if config.Environment == "development" {
 		app.Use(cors.New(cors.Config{
 			AllowOrigins:  "*",
 			AllowMethods:  "HEAD,OPTIONS,GET",
@@ -34,7 +39,6 @@ func init() {
 	}
 
 	app.Get("/ping", PingHandler)
-	app.Get("/favicon.ico", FaviconHandler)
 	app.Get("/status/java/:address", JavaStatusHandler)
 	app.Get("/status/bedrock/:address", BedrockStatusHandler)
 	app.Get("/icon", DefaultIconHandler)
@@ -45,11 +49,6 @@ func init() {
 // PingHandler responds with a 200 OK status for simple health checks.
 func PingHandler(ctx *fiber.Ctx) error {
 	return ctx.SendStatus(http.StatusOK)
-}
-
-// FaviconHandler serves the favicon.ico file to any users that visit the API using a browser.
-func FaviconHandler(ctx *fiber.Ctx) error {
-	return ctx.Type("ico").Send(assets.Favicon)
 }
 
 // JavaStatusHandler returns the status of the Java edition Minecraft server specified in the address parameter.
