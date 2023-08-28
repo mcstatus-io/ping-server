@@ -406,7 +406,7 @@ func BuildJavaResponse(host string, port uint16, status *response.JavaStatus, le
 				Clean: status.MOTD.Clean,
 				HTML:  status.MOTD.HTML,
 			},
-			Icon:    status.Favicon,
+			Icon:    nil,
 			Mods:    make([]Mod, 0),
 			Plugins: make([]Plugin, 0),
 		}
@@ -420,6 +420,10 @@ func BuildJavaResponse(host string, port uint16, status *response.JavaStatus, le
 					NameHTML:  player.NameHTML,
 				})
 			}
+		}
+
+		if status.Favicon != nil && len(*status.Favicon) > 0 {
+			result.Icon = status.Favicon
 		}
 
 		if status.ModInfo != nil {
