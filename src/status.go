@@ -311,10 +311,12 @@ func FetchJavaStatus(host string, port uint16, opts *StatusOptions) JavaStatusRe
 
 			legacyCancel()
 
-			time.Sleep(time.Millisecond * 250)
+			if opts.Query && queryResult == nil {
+				time.Sleep(time.Millisecond * 250)
 
-			if queryResult == nil {
-				queryCancel()
+				if queryResult == nil {
+					queryCancel()
+				}
 			}
 		}()
 	}
