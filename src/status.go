@@ -20,12 +20,13 @@ import (
 
 // BaseStatus is the base response properties for returning any status response from the API.
 type BaseStatus struct {
-	Online      bool   `json:"online"`
-	Host        string `json:"host"`
-	Port        uint16 `json:"port"`
-	EULABlocked bool   `json:"eula_blocked"`
-	RetrievedAt int64  `json:"retrieved_at"`
-	ExpiresAt   int64  `json:"expires_at"`
+	Online      bool    `json:"online"`
+	Host        string  `json:"host"`
+	Port        uint16  `json:"port"`
+	IPAddress   *string `json:"ip_address"`
+	EULABlocked bool    `json:"eula_blocked"`
+	RetrievedAt int64   `json:"retrieved_at"`
+	ExpiresAt   int64   `json:"expires_at"`
 }
 
 // JavaStatusResponse is the combined response of the root response and the Java Edition status response.
@@ -268,14 +269,44 @@ func GetServerIcon(host string, port uint16, opts *StatusOptions) ([]byte, time.
 
 // FetchJavaStatus fetches fresh information about a Java Edition Minecraft server.
 func FetchJavaStatus(host string, port uint16, opts *StatusOptions) JavaStatusResponse {
-	srvRecord, _ := mcutil.LookupSRV("tcp", host, port)
+	var (
+		err                error
+		srvRecord          *net.SRV
+		connectionHostname string = host
+		connectionPort     uint16 = port
+		ipAddress          *string
+		statusResult       *response.JavaStatus
+		legacyStatusResult *response.JavaStatusLegacy
+		queryResult        *response.FullQuery
+		wg                 sync.WaitGroup
+	)
 
-	var wg sync.WaitGroup
+	// Setup initial wait group deltas
+	{
+		wg.Add(2)
 
-	wg.Add(2)
+		if opts.Query {
+			wg.Add(1)
+		}
+	}
 
-	if opts.Query {
-		wg.Add(1)
+	// Lookup the SRV record
+	{
+		srvRecord, err = mcutil.LookupSRV("tcp", host, port)
+
+		if err == nil && srvRecord != nil {
+			connectionHostname = srvRecord.Target
+			connectionPort = srvRecord.Port
+		}
+	}
+
+	// Resolve the connection hostname to an IP address
+	{
+		addr, err := net.ResolveIPAddr("ip", connectionHostname)
+
+		if err == nil && addr != nil {
+			ipAddress = PointerOf(addr.IP.String())
+		}
 	}
 
 	statusContext, statusCancel := context.WithTimeout(context.Background(), opts.Timeout)
@@ -286,26 +317,13 @@ func FetchJavaStatus(host string, port uint16, opts *StatusOptions) JavaStatusRe
 	defer legacyCancel()
 	defer queryCancel()
 
-	var (
-		statusResult       *response.JavaStatus       = nil
-		legacyStatusResult *response.JavaStatusLegacy = nil
-		queryResult        *response.FullQuery        = nil
-	)
-
-	// Status
+	// Retrieve the post-netty rewrite Java Edition status (Minecraft 1.8+)
 	{
 		go func() {
-			if srvRecord != nil {
-				statusResult, _ = mcutil.Status(statusContext, srvRecord.Target, srvRecord.Port, options.JavaStatus{
-					EnableSRV: false,
-					Timeout:   opts.Timeout - time.Millisecond*100,
-				})
-			} else {
-				statusResult, _ = mcutil.Status(statusContext, host, port, options.JavaStatus{
-					EnableSRV: false,
-					Timeout:   opts.Timeout - time.Millisecond*100,
-				})
-			}
+			statusResult, _ = mcutil.Status(statusContext, connectionHostname, connectionPort, options.JavaStatus{
+				EnableSRV: false,
+				Timeout:   opts.Timeout - time.Millisecond*100,
+			})
 
 			wg.Done()
 
@@ -321,20 +339,13 @@ func FetchJavaStatus(host string, port uint16, opts *StatusOptions) JavaStatusRe
 		}()
 	}
 
-	// Legacy Status
+	// Retrieve the pre-netty rewrite Java Edition status (Minecraft 1.7 and below)
 	{
 		go func() {
-			if srvRecord != nil {
-				legacyStatusResult, _ = mcutil.StatusLegacy(legacyContext, srvRecord.Target, srvRecord.Port, options.JavaStatusLegacy{
-					EnableSRV: false,
-					Timeout:   opts.Timeout - time.Millisecond*100,
-				})
-			} else {
-				legacyStatusResult, _ = mcutil.StatusLegacy(legacyContext, host, port, options.JavaStatusLegacy{
-					EnableSRV: false,
-					Timeout:   opts.Timeout - time.Millisecond*100,
-				})
-			}
+			legacyStatusResult, _ = mcutil.StatusLegacy(legacyContext, connectionHostname, connectionPort, options.JavaStatusLegacy{
+				EnableSRV: false,
+				Timeout:   opts.Timeout - time.Millisecond*100,
+			})
 
 			wg.Done()
 
@@ -346,10 +357,10 @@ func FetchJavaStatus(host string, port uint16, opts *StatusOptions) JavaStatusRe
 		}()
 	}
 
-	// Query
+	// Retrieve the query information (if it is available)
 	if opts.Query {
 		go func() {
-			queryResult, _ = mcutil.FullQuery(queryContext, host, port, options.Query{
+			queryResult, _ = mcutil.FullQuery(queryContext, connectionHostname, connectionPort, options.Query{
 				Timeout: opts.Timeout - time.Millisecond*100,
 			})
 
@@ -359,27 +370,45 @@ func FetchJavaStatus(host string, port uint16, opts *StatusOptions) JavaStatusRe
 
 	wg.Wait()
 
-	return BuildJavaResponse(host, port, statusResult, legacyStatusResult, queryResult, srvRecord)
+	return BuildJavaResponse(host, port, statusResult, legacyStatusResult, queryResult, srvRecord, ipAddress)
 }
 
 // FetchBedrockStatus fetches a fresh status of a Bedrock Edition server.
 func FetchBedrockStatus(host string, port uint16, opts *StatusOptions) BedrockStatusResponse {
-	ctx, cancel := context.WithTimeout(context.Background(), opts.Timeout)
+	var (
+		ipAddress *string
+		status    *response.BedrockStatus
+	)
 
-	defer cancel()
+	// Resolve the connection hostname to an IP address
+	{
+		ipAddr, err := net.ResolveIPAddr("ip", host)
 
-	status, _ := mcutil.StatusBedrock(ctx, host, port)
+		if err == nil && ipAddr != nil {
+			ipAddress = PointerOf(ipAddr.IP.String())
+		}
+	}
 
-	return BuildBedrockResponse(host, port, status)
+	// Retrieve the Bedrock Edition status
+	{
+		ctx, cancel := context.WithTimeout(context.Background(), opts.Timeout)
+
+		defer cancel()
+
+		status, _ = mcutil.StatusBedrock(ctx, host, port)
+	}
+
+	return BuildBedrockResponse(host, port, status, ipAddress)
 }
 
 // BuildJavaResponse builds the response data from the status and query information.
-func BuildJavaResponse(host string, port uint16, status *response.JavaStatus, legacyStatus *response.JavaStatusLegacy, query *response.FullQuery, srvRecord *net.SRV) (result JavaStatusResponse) {
+func BuildJavaResponse(host string, port uint16, status *response.JavaStatus, legacyStatus *response.JavaStatusLegacy, query *response.FullQuery, srvRecord *net.SRV, ipAddress *string) (result JavaStatusResponse) {
 	result = JavaStatusResponse{
 		BaseStatus: BaseStatus{
 			Online:      false,
 			Host:        host,
 			Port:        port,
+			IPAddress:   ipAddress,
 			EULABlocked: IsBlockedAddress(host),
 			RetrievedAt: time.Now().UnixMilli(),
 			ExpiresAt:   time.Now().Add(config.Cache.JavaStatusDuration).UnixMilli(),
@@ -570,12 +599,13 @@ func BuildJavaResponse(host string, port uint16, status *response.JavaStatus, le
 }
 
 // BuildBedrockResponse builds the response data from the status information.
-func BuildBedrockResponse(host string, port uint16, status *response.BedrockStatus) (result BedrockStatusResponse) {
+func BuildBedrockResponse(host string, port uint16, status *response.BedrockStatus, ipAddress *string) (result BedrockStatusResponse) {
 	result = BedrockStatusResponse{
 		BaseStatus: BaseStatus{
 			Online:      false,
 			Host:        host,
 			Port:        port,
+			IPAddress:   ipAddress,
 			EULABlocked: IsBlockedAddress(host),
 			RetrievedAt: time.Now().UnixMilli(),
 			ExpiresAt:   time.Now().Add(config.Cache.BedrockStatusDuration).UnixMilli(),
