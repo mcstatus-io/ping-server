@@ -6,7 +6,7 @@ toolchain go1.21.0
 
 require (
 	github.com/go-redsync/redsync/v4 v4.9.4
-	github.com/gofiber/fiber/v2 v2.49.2
+	github.com/gofiber/fiber/v2 v2.50.0
 	github.com/mcstatus-io/mcutil/v2 v2.0.1
 	github.com/redis/go-redis/v9 v9.2.0
 	gopkg.in/yaml.v3 v3.0.1
@@ -28,5 +28,5 @@ require (
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.50.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect
-	golang.org/x/sys v0.12.0 // indirect
+	golang.org/x/sys v0.13.0 // indirect
 )
