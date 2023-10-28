@@ -292,7 +292,7 @@ func FetchJavaStatus(host string, port uint16, opts *StatusOptions) JavaStatusRe
 
 	// Lookup the SRV record
 	{
-		srvRecord, err = mcutil.LookupSRV("tcp", host, port)
+		srvRecord, err = mcutil.LookupSRV("tcp", host)
 
 		if err == nil && srvRecord != nil {
 			connectionHostname = srvRecord.Target
