@@ -12,8 +12,8 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/favicon"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
-	"github.com/mcstatus-io/mcutil/v2"
-	"github.com/mcstatus-io/mcutil/v2/options"
+	"github.com/mcstatus-io/mcutil/v3"
+	"github.com/mcstatus-io/mcutil/v3/options"
 )
 
 func init() {
@@ -161,7 +161,7 @@ func SendVoteHandler(ctx *fiber.Ctx) error {
 
 			defer cancel()
 
-			if err = mcutil.SendLegacyVote(c, opts.Host, opts.Port, options.LegacyVote{
+			if err = mcutil.SendVote(c, opts.Host, opts.Port, options.Vote{
 				PublicKey:   opts.PublicKey,
 				ServiceName: opts.ServiceName,
 				Username:    opts.Username,
