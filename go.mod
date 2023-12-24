@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/go-redsync/redsync/v4 v4.11.0
 	github.com/gofiber/fiber/v2 v2.51.0
-	github.com/mcstatus-io/mcutil/v3 v3.1.1
+	github.com/mcstatus-io/mcutil/v3 v3.2.0
 	github.com/redis/go-redis/v9 v9.3.1
 	gopkg.in/yaml.v3 v3.0.1
 )

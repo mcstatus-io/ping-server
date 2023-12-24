@@ -31,8 +31,8 @@ github.com/mattn/go-isatty v0.0.20 h1:xfD0iDuEKnDkl03q4limB+vH+GxLEtL/jb4xVJSWWE
 github.com/mattn/go-isatty v0.0.20/go.mod h1:W+V8PltTTMOvKvAeJH7IuucS94S2C6jfK/D7dTCTo3Y=
 github.com/mattn/go-runewidth v0.0.15 h1:UNAjwbU9l54TA3KzvqLGxwWjHmMgBUVhBiTjelZgg3U=
 github.com/mattn/go-runewidth v0.0.15/go.mod h1:Jdepj2loyihRzMpdS35Xk/zdY8IAYHsh153qUoGf23w=
-github.com/mcstatus-io/mcutil/v3 v3.1.1 h1:wQBr2nh+mkme9h8aooe/GjU1tiA0mixX/JIcu1Rv+KI=
-github.com/mcstatus-io/mcutil/v3 v3.1.1/go.mod h1:f1hgiUD3WoNmeZdN1AXYASSEO7yPxVEsLCGXnPkK6p4=
+github.com/mcstatus-io/mcutil/v3 v3.2.0 h1:PZpwp82Upuq0tsM27pXLvYUQ21gE14fcbagi2ebSOpE=
+github.com/mcstatus-io/mcutil/v3 v3.2.0/go.mod h1:f1hgiUD3WoNmeZdN1AXYASSEO7yPxVEsLCGXnPkK6p4=
 github.com/redis/go-redis/v9 v9.3.1 h1:KqdY8U+3X6z+iACvumCNxnoluToB+9Me+TvyFa21Mds=
 github.com/redis/go-redis/v9 v9.3.1/go.mod h1:hdY0cQFCN4fnSYT6TkisLufl/4W5UIXyv0b/CLO2V2M=
 github.com/redis/rueidis v1.0.19 h1:s65oWtotzlIFN8eMPhyYwxlwLR1lUdhza2KtWprKYSo=
