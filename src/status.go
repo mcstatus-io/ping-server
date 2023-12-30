@@ -32,19 +32,19 @@ type BaseStatus struct {
 // JavaStatusResponse is the combined response of the root response and the Java Edition status response.
 type JavaStatusResponse struct {
 	BaseStatus
+	SRVRecord *SRVRecord `json:"srv_record"`
 	*JavaStatus
 }
 
 // JavaStatus is the status response properties for Java Edition.
 type JavaStatus struct {
-	Version   *JavaVersion `json:"version"`
-	Players   JavaPlayers  `json:"players"`
-	MOTD      MOTD         `json:"motd"`
-	Icon      *string      `json:"icon"`
-	Mods      []Mod        `json:"mods"`
-	Software  *string      `json:"software"`
-	Plugins   []Plugin     `json:"plugins"`
-	SRVRecord *SRVRecord   `json:"srv_record"`
+	Version  *JavaVersion `json:"version"`
+	Players  JavaPlayers  `json:"players"`
+	MOTD     MOTD         `json:"motd"`
+	Icon     *string      `json:"icon"`
+	Mods     []Mod        `json:"mods"`
+	Software *string      `json:"software"`
+	Plugins  []Plugin     `json:"plugins"`
 }
 
 // BedrockStatusResponse is the combined response of the root response and the Bedrock Edition status response.
@@ -295,7 +295,7 @@ func FetchJavaStatus(host string, port uint16, opts *StatusOptions) JavaStatusRe
 		srvRecord, err = mcutil.LookupSRV("tcp", host)
 
 		if err == nil && srvRecord != nil {
-			connectionHostname = srvRecord.Target
+			connectionHostname = strings.Trim(srvRecord.Target, ".")
 			connectionPort = srvRecord.Port
 		}
 	}
@@ -588,7 +588,7 @@ func BuildJavaResponse(host string, port uint16, status *response.JavaStatus, le
 		}
 	}
 
-	if result.JavaStatus != nil && srvRecord != nil {
+	if srvRecord != nil {
 		result.SRVRecord = &SRVRecord{
 			Host: strings.Trim(srvRecord.Target, "."),
 			Port: srvRecord.Port,
