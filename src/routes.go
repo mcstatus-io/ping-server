@@ -146,6 +146,11 @@ func IconHandler(ctx *fiber.Ctx) error {
 	return ctx.Type("png").Send(icon)
 }
 
+// DefaultIconHandler returns the default server icon.
+func DefaultIconHandler(ctx *fiber.Ctx) error {
+	return ctx.Type("png").Send(assets.DefaultIcon)
+}
+
 // SendVoteHandler allows sending of Votifier votes to the specified server.
 func SendVoteHandler(ctx *fiber.Ctx) error {
 	opts, err := GetVoteOptions(ctx)
@@ -192,9 +197,4 @@ func SendVoteHandler(ctx *fiber.Ctx) error {
 	}
 
 	return ctx.Status(http.StatusOK).SendString("The vote was successfully sent to the server")
-}
-
-// DefaultIconHandler returns the default server icon.
-func DefaultIconHandler(ctx *fiber.Ctx) error {
-	return ctx.Type("png").Send(assets.DefaultIcon)
 }

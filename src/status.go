@@ -272,8 +272,7 @@ func FetchJavaStatus(host string, port uint16, opts *StatusOptions) JavaStatusRe
 	var (
 		err                error
 		srvRecord          *net.SRV
-		connectionHostname string = host
-		connectionPort     uint16 = port
+		resolvedHost       string = host
 		ipAddress          *string
 		statusResult       *response.JavaStatus
 		legacyStatusResult *response.JavaStatusLegacy
@@ -295,14 +294,13 @@ func FetchJavaStatus(host string, port uint16, opts *StatusOptions) JavaStatusRe
 		srvRecord, err = mcutil.LookupSRV("tcp", host)
 
 		if err == nil && srvRecord != nil {
-			connectionHostname = strings.Trim(srvRecord.Target, ".")
-			connectionPort = srvRecord.Port
+			resolvedHost = strings.Trim(srvRecord.Target, ".")
 		}
 	}
 
 	// Resolve the connection hostname to an IP address
 	{
-		addr, err := net.ResolveIPAddr("ip", connectionHostname)
+		addr, err := net.ResolveIPAddr("ip", resolvedHost)
 
 		if err == nil && addr != nil {
 			ipAddress = PointerOf(addr.IP.String())
@@ -320,9 +318,11 @@ func FetchJavaStatus(host string, port uint16, opts *StatusOptions) JavaStatusRe
 	// Retrieve the post-netty rewrite Java Edition status (Minecraft 1.8+)
 	{
 		go func() {
-			statusResult, _ = mcutil.Status(statusContext, connectionHostname, connectionPort, options.JavaStatus{
-				EnableSRV: false,
-				Timeout:   opts.Timeout - time.Millisecond*100,
+			statusResult, _ = mcutil.Status(statusContext, host, port, options.JavaStatus{
+				EnableSRV:       true,
+				Timeout:         opts.Timeout - time.Millisecond*100,
+				ProtocolVersion: 47,
+				Ping:            false,
 			})
 
 			wg.Done()
@@ -342,9 +342,10 @@ func FetchJavaStatus(host string, port uint16, opts *StatusOptions) JavaStatusRe
 	// Retrieve the pre-netty rewrite Java Edition status (Minecraft 1.7 and below)
 	{
 		go func() {
-			legacyStatusResult, _ = mcutil.StatusLegacy(legacyContext, connectionHostname, connectionPort, options.JavaStatusLegacy{
-				EnableSRV: false,
-				Timeout:   opts.Timeout - time.Millisecond*100,
+			legacyStatusResult, _ = mcutil.StatusLegacy(legacyContext, host, port, options.JavaStatusLegacy{
+				EnableSRV:       true,
+				Timeout:         opts.Timeout - time.Millisecond*100,
+				ProtocolVersion: 47,
 			})
 
 			wg.Done()
@@ -360,7 +361,7 @@ func FetchJavaStatus(host string, port uint16, opts *StatusOptions) JavaStatusRe
 	// Retrieve the query information (if it is available)
 	if opts.Query {
 		go func() {
-			queryResult, _ = mcutil.FullQuery(queryContext, connectionHostname, connectionPort, options.Query{
+			queryResult, _ = mcutil.FullQuery(queryContext, host, port, options.Query{
 				Timeout: opts.Timeout - time.Millisecond*100,
 			})
 
