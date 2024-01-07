@@ -4,8 +4,8 @@ go 1.18
 
 require (
 	github.com/go-redsync/redsync/v4 v4.11.0
-	github.com/gofiber/fiber/v2 v2.51.0
-	github.com/mcstatus-io/mcutil/v3 v3.2.0
+	github.com/gofiber/fiber/v2 v2.52.0
+	github.com/mcstatus-io/mcutil/v3 v3.2.1
 	github.com/redis/go-redis/v9 v9.3.1
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -26,5 +26,5 @@ require (
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.51.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect
-	golang.org/x/sys v0.15.0 // indirect
+	golang.org/x/sys v0.16.0 // indirect
 )
