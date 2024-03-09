@@ -22,16 +22,18 @@ var (
 			BedrockStatusDuration: time.Minute,
 			IconDuration:          time.Minute * 15,
 		},
+		AccessControl: ConfigAccessControl{},
 	}
 )
 
 // Config represents the application configuration.
 type Config struct {
-	Environment string      `yaml:"environment"`
-	Host        string      `yaml:"host"`
-	Port        uint16      `yaml:"port"`
-	Redis       *string     `yaml:"redis"`
-	Cache       ConfigCache `yaml:"cache"`
+	Environment   string              `yaml:"environment"`
+	Host          string              `yaml:"host"`
+	Port          uint16              `yaml:"port"`
+	Redis         *string             `yaml:"redis"`
+	Cache         ConfigCache         `yaml:"cache"`
+	AccessControl ConfigAccessControl `yaml:"access_control"`
 }
 
 // ConfigCache represents the caching durations of various responses.
@@ -40,6 +42,12 @@ type ConfigCache struct {
 	JavaStatusDuration    time.Duration `yaml:"java_status_duration"`
 	BedrockStatusDuration time.Duration `yaml:"bedrock_status_duration"`
 	IconDuration          time.Duration `yaml:"icon_duration"`
+}
+
+// ConfigAccessControl is the configuration for the CORS headers
+type ConfigAccessControl struct {
+	Enable         bool     `yaml:"enable"`
+	AllowedOrigins []string `yaml:"allowed_origins"`
 }
 
 // ReadFile reads the configuration from the given file and overrides values using environment variables.

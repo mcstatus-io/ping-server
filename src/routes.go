@@ -6,6 +6,7 @@ import (
 	"main/src/assets"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -25,11 +26,13 @@ func init() {
 		Data: assets.Favicon,
 	}))
 
-	app.Use(cors.New(cors.Config{
-		AllowOrigins:  "*",
-		AllowMethods:  "HEAD,OPTIONS,GET,POST",
-		ExposeHeaders: "X-Cache-Hit,X-Cache-Time-Remaining",
-	}))
+	if config.AccessControl.Enable {
+		app.Use(cors.New(cors.Config{
+			AllowOrigins:  strings.Join(config.AccessControl.AllowedOrigins, ","),
+			AllowMethods:  "HEAD,OPTIONS,GET,POST",
+			ExposeHeaders: "X-Cache-Hit,X-Cache-Time-Remaining",
+		}))
+	}
 
 	if config.Environment == "development" {
 		app.Use(logger.New(logger.Config{
