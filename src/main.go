@@ -25,9 +25,10 @@ var (
 			return ctx.SendStatus(http.StatusInternalServerError)
 		},
 	})
-	r          *Redis  = &Redis{}
-	config     *Config = DefaultConfig
-	instanceID uint16  = 0
+	r          *Redis   = &Redis{}
+	db         *MongoDB = &MongoDB{}
+	config     *Config  = DefaultConfig
+	instanceID uint16   = 0
 )
 
 func init() {
@@ -51,6 +52,14 @@ func init() {
 
 	log.Println("Successfully retrieved EULA blocked servers")
 
+	if config.MongoDB != nil {
+		if err = db.Connect(); err != nil {
+			log.Fatalf("Failed to connect to MongoDB: %v", err)
+		}
+
+		log.Println("Successfully connected to MongoDB")
+	}
+
 	if config.Redis != nil {
 		if err = r.Connect(); err != nil {
 			log.Fatalf("Failed to connect to Redis: %v", err)
@@ -72,6 +81,7 @@ func init() {
 
 func main() {
 	defer r.Close()
+	defer db.Close()
 
 	if err := app.Listen(fmt.Sprintf("%s:%d", config.Host, config.Port+instanceID)); err != nil {
 		panic(err)

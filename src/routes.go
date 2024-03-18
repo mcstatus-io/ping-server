@@ -6,7 +6,6 @@ import (
 	"main/src/assets"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -26,15 +25,13 @@ func init() {
 		Data: assets.Favicon,
 	}))
 
-	if config.AccessControl.Enable {
+	if config.Environment == "development" {
 		app.Use(cors.New(cors.Config{
-			AllowOrigins:  strings.Join(config.AccessControl.AllowedOrigins, ","),
+			AllowOrigins:  "*",
 			AllowMethods:  "HEAD,OPTIONS,GET,POST",
 			ExposeHeaders: "X-Cache-Hit,X-Cache-Time-Remaining",
 		}))
-	}
 
-	if config.Environment == "development" {
 		app.Use(logger.New(logger.Config{
 			Format:     "${time} ${ip}:${port} -> ${status}: ${method} ${path} (${latency})\n",
 			TimeFormat: "2006/01/02 15:04:05",
@@ -66,6 +63,14 @@ func JavaStatusHandler(ctx *fiber.Ctx) error {
 
 	if err != nil {
 		return ctx.Status(http.StatusBadRequest).SendString("Invalid address value")
+	}
+
+	authorized, err := Authenticate(ctx)
+
+	// This check should work for both scenarios, because nil should be returned if the user
+	// is unauthorized, and err will be nil in that case.
+	if err != nil || !authorized {
+		return err
 	}
 
 	if err = r.Increment(fmt.Sprintf("java-hits:%s-%d", host, port)); err != nil {
