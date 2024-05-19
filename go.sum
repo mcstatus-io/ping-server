@@ -38,6 +38,8 @@ github.com/mattn/go-runewidth v0.0.15 h1:UNAjwbU9l54TA3KzvqLGxwWjHmMgBUVhBiTjelZ
 github.com/mattn/go-runewidth v0.0.15/go.mod h1:Jdepj2loyihRzMpdS35Xk/zdY8IAYHsh153qUoGf23w=
 github.com/mcstatus-io/mcutil/v3 v3.4.0 h1:mYELJ+lP6mWqL+bt2W9JIUMmfSZtrfBogBZ2p3HsCPQ=
 github.com/mcstatus-io/mcutil/v3 v3.4.0/go.mod h1:f1hgiUD3WoNmeZdN1AXYASSEO7yPxVEsLCGXnPkK6p4=
+github.com/mcstatus-io/mcutil/v3 v3.5.0 h1:RoMFR2hZtJL1JA4rrTSTL8Gp11j6mhLR8yOSU0ICCzs=
+github.com/mcstatus-io/mcutil/v3 v3.5.0/go.mod h1:f1hgiUD3WoNmeZdN1AXYASSEO7yPxVEsLCGXnPkK6p4=
 github.com/redis/go-redis/v9 v9.5.1 h1:H1X4D3yHPaYrkL5X06Wh6xNVM/pX0Ft4RV0vMGvLBh8=
 github.com/redis/go-redis/v9 v9.5.1/go.mod h1:hdY0cQFCN4fnSYT6TkisLufl/4W5UIXyv0b/CLO2V2M=
 github.com/redis/rueidis v1.0.19 h1:s65oWtotzlIFN8eMPhyYwxlwLR1lUdhza2KtWprKYSo=

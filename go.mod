@@ -7,7 +7,7 @@ toolchain go1.22.3
 require (
 	github.com/go-redsync/redsync/v4 v4.13.0
 	github.com/gofiber/fiber/v2 v2.52.4
-	github.com/mcstatus-io/mcutil/v3 v3.4.0
+	github.com/mcstatus-io/mcutil/v3 v3.5.0
 	github.com/redis/go-redis/v9 v9.5.1
 	gopkg.in/yaml.v3 v3.0.1
 )
