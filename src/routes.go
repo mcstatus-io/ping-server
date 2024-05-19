@@ -170,12 +170,13 @@ func SendVoteHandler(ctx *fiber.Ctx) error {
 			defer cancel()
 
 			if err = mcutil.SendVote(c, opts.Host, opts.Port, options.Vote{
-				PublicKey:   opts.PublicKey,
-				ServiceName: opts.ServiceName,
-				Username:    opts.Username,
-				IPAddress:   opts.IPAddress,
-				Timestamp:   opts.Timestamp,
-				Timeout:     opts.Timeout,
+				RequireVersion: 1,
+				PublicKey:      opts.PublicKey,
+				ServiceName:    opts.ServiceName,
+				Username:       opts.Username,
+				IPAddress:      opts.IPAddress,
+				Timestamp:      opts.Timestamp,
+				Timeout:        opts.Timeout,
 			}); err != nil {
 				return ctx.Status(http.StatusBadRequest).SendString(err.Error())
 			}
@@ -187,12 +188,13 @@ func SendVoteHandler(ctx *fiber.Ctx) error {
 			defer cancel()
 
 			if err = mcutil.SendVote(c, opts.Host, opts.Port, options.Vote{
-				ServiceName: opts.ServiceName,
-				Username:    opts.Username,
-				Token:       opts.Token,
-				UUID:        opts.UUID,
-				Timestamp:   opts.Timestamp,
-				Timeout:     opts.Timeout,
+				RequireVersion: 2,
+				ServiceName:    opts.ServiceName,
+				Username:       opts.Username,
+				Token:          opts.Token,
+				UUID:           opts.UUID,
+				Timestamp:      opts.Timestamp,
+				Timeout:        opts.Timeout,
 			}); err != nil {
 				return ctx.Status(http.StatusBadRequest).SendString(err.Error())
 			}
