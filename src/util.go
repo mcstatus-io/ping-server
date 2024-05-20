@@ -29,7 +29,6 @@ var (
 
 // VoteOptions is the options provided as query parameters to the vote route.
 type VoteOptions struct {
-	Version     int
 	IPAddress   string
 	Host        string
 	Port        uint16
@@ -152,15 +151,6 @@ func ParseAddress(address string, defaultPort uint16) (string, uint16, error) {
 func GetVoteOptions(ctx *fiber.Ctx) (*VoteOptions, error) {
 	result := VoteOptions{}
 
-	// Version
-	{
-		result.Version = ctx.QueryInt("version", 2)
-
-		if result.Version < 0 || result.Version > 2 {
-			return nil, fmt.Errorf("invalid 'version' query parameter: %d", result.Version)
-		}
-	}
-
 	// Host
 	{
 		result.Host = ctx.Query("host")
@@ -203,19 +193,11 @@ func GetVoteOptions(ctx *fiber.Ctx) (*VoteOptions, error) {
 	// Public Key
 	{
 		result.PublicKey = ctx.Query("publickey")
-
-		if result.Version == 1 && len(result.PublicKey) < 1 {
-			return nil, fmt.Errorf("invalid 'publickey' query parameter: %s", result.PublicKey)
-		}
 	}
 
 	// Token
 	{
 		result.Token = ctx.Query("token")
-
-		if result.Version == 2 && len(result.Token) < 1 {
-			return nil, fmt.Errorf("invalid 'token' query parameter: %s", result.Token)
-		}
 	}
 
 	// IP Address
@@ -243,6 +225,11 @@ func GetVoteOptions(ctx *fiber.Ctx) (*VoteOptions, error) {
 	// Timeout
 	{
 		result.Timeout = time.Duration(math.Max(float64(time.Second)*ctx.QueryFloat("timeout", 5.0), float64(time.Millisecond*250)))
+	}
+
+	// Test token and public key parameters
+	if len(result.Token) < 1 && len(result.PublicKey) < 1 {
+		return nil, errors.New("query parameter 'token', 'publickey' or both must have a value, but both were empty")
 	}
 
 	return &result, nil
