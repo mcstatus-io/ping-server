@@ -167,41 +167,20 @@ func SendVoteHandler(ctx *fiber.Ctx) error {
 		return ctx.Status(http.StatusBadRequest).SendString(err.Error())
 	}
 
-	switch opts.Version {
-	case 1:
-		{
-			c, cancel := context.WithTimeout(context.Background(), opts.Timeout)
+	c, cancel := context.WithTimeout(context.Background(), opts.Timeout)
 
-			defer cancel()
+	defer cancel()
 
-			if err = mcutil.SendVote(c, opts.Host, opts.Port, options.Vote{
-				PublicKey:   opts.PublicKey,
-				ServiceName: opts.ServiceName,
-				Username:    opts.Username,
-				IPAddress:   opts.IPAddress,
-				Timestamp:   opts.Timestamp,
-				Timeout:     opts.Timeout,
-			}); err != nil {
-				return ctx.Status(http.StatusBadRequest).SendString(err.Error())
-			}
-		}
-	case 2:
-		{
-			c, cancel := context.WithTimeout(context.Background(), opts.Timeout)
-
-			defer cancel()
-
-			if err = mcutil.SendVote(c, opts.Host, opts.Port, options.Vote{
-				ServiceName: opts.ServiceName,
-				Username:    opts.Username,
-				Token:       opts.Token,
-				UUID:        opts.UUID,
-				Timestamp:   opts.Timestamp,
-				Timeout:     opts.Timeout,
-			}); err != nil {
-				return ctx.Status(http.StatusBadRequest).SendString(err.Error())
-			}
-		}
+	if err = mcutil.SendVote(c, opts.Host, opts.Port, options.Vote{
+		PublicKey:   opts.PublicKey,
+		Token:       opts.Token,
+		ServiceName: opts.ServiceName,
+		Username:    opts.Username,
+		IPAddress:   opts.IPAddress,
+		Timestamp:   opts.Timestamp,
+		Timeout:     opts.Timeout,
+	}); err != nil {
+		return ctx.Status(http.StatusBadRequest).SendString(err.Error())
 	}
 
 	return ctx.Status(http.StatusOK).SendString("The vote was successfully sent to the server")
