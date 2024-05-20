@@ -31,7 +31,6 @@ var (
 
 // VoteOptions is the options provided as query parameters to the vote route.
 type VoteOptions struct {
-	Version     int
 	IPAddress   string
 	Host        string
 	Port        uint16
