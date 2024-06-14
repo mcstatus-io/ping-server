@@ -195,8 +195,6 @@ func GetVoteOptions(ctx *fiber.Ctx) (*VoteOptions, error) {
 	// Public Key
 	{
 		result.PublicKey = ctx.Query("publickey")
-
-		log.Println(result.PublicKey)
 	}
 
 	// Token
