@@ -330,6 +330,7 @@ func Authenticate(ctx *fiber.Ctx) (bool, error) {
 		bson.M{
 			"application": token.Application,
 			"timestamp":   GetStartOfHour(),
+			"token":       token.ID,
 		},
 		bson.M{
 			"$setOnInsert": bson.M{
