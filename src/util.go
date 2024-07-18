@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/rand"
 	"crypto/sha1"
 	_ "embed"
 	"encoding/hex"
@@ -19,6 +20,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 var (
@@ -235,6 +237,7 @@ func GetVoteOptions(ctx *fiber.Ctx) (*VoteOptions, error) {
 	return &result, nil
 }
 
+// GetStatusOptions returns the options for status routes, with the default values filled in.
 func GetStatusOptions(ctx *fiber.Ctx) (*StatusOptions, error) {
 	result := &StatusOptions{}
 
@@ -267,16 +270,80 @@ func GetInstanceID() (uint16, error) {
 }
 
 // GetCacheKey generates a unique key used for caching status results in Redis.
-func GetCacheKey(host string, port uint16, opts *StatusOptions) string {
+func GetCacheKey(host string, opts *StatusOptions) string {
 	values := &url.Values{}
 	values.Set("host", host)
-	values.Set("port", strconv.FormatUint(uint64(port), 10))
 
 	if opts != nil {
 		values.Set("query", strconv.FormatBool(opts.Query))
 	}
 
 	return SHA256(values.Encode())
+}
+
+// Authenticate checks and requires authentication for the current request, by finding the token.
+func Authenticate(ctx *fiber.Ctx) (bool, error) {
+	if config.MongoDB == nil {
+		return true, nil
+	}
+
+	authToken := ctx.Get("Authorization")
+
+	if len(authToken) < 1 {
+		if err := ctx.Status(http.StatusUnauthorized).SendString("Missing 'Authorization' header in request"); err != nil {
+			return false, err
+		}
+
+		return false, nil
+	}
+
+	token, err := db.GetTokenByToken(authToken)
+
+	if err != nil {
+		return false, err
+	}
+
+	if token == nil {
+		if err := ctx.Status(http.StatusUnauthorized).SendString("Invalid or expired authorization token, please generate another one in the dashboard"); err != nil {
+			return false, err
+		}
+
+		return false, nil
+	}
+
+	if err = db.IncrementApplicationRequestCount(token.Application); err != nil {
+		return false, err
+	}
+
+	if err = db.UpdateToken(
+		token.ID,
+		bson.M{
+			"$inc": bson.M{"requestCount": 1},
+			"$set": bson.M{"lastUsedAt": time.Now().UTC()},
+		},
+	); err != nil {
+		return false, err
+	}
+
+	if err = db.UpsertRequestLog(
+		bson.M{
+			"application": token.Application,
+			"timestamp":   GetStartOfHour(),
+			"token":       token.ID,
+		},
+		bson.M{
+			"$setOnInsert": bson.M{
+				"_id": RandomHexString(16),
+			},
+			"$inc": bson.M{
+				"requestCount": 1,
+			},
+		},
+	); err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 // SHA256 returns the result of hashing the input value using SHA256 algorithm.
@@ -311,4 +378,20 @@ func Map[I, O any](arr []I, f func(I) O) []O {
 	}
 
 	return result
+}
+
+// GetStartOfHour returns the current date and time rounded down to the start of the hour.
+func GetStartOfHour() time.Time {
+	return time.Now().UTC().Truncate(time.Hour)
+}
+
+// RandomHexString returns a random hexadecimal string with the specified byte length.
+func RandomHexString(byteLength int) string {
+	data := make([]byte, byteLength)
+
+	if _, err := rand.Read(data); err != nil {
+		panic(err)
+	}
+
+	return hex.EncodeToString(data)
 }

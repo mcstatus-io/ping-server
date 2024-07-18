@@ -15,6 +15,7 @@ var (
 		Environment: "production",
 		Host:        "127.0.0.1",
 		Port:        3001,
+		MongoDB:     nil,
 		Redis:       nil,
 		Cache: ConfigCache{
 			EnableLocks:           true,
@@ -22,18 +23,17 @@ var (
 			BedrockStatusDuration: time.Minute,
 			IconDuration:          time.Minute * 15,
 		},
-		AccessControl: ConfigAccessControl{},
 	}
 )
 
 // Config represents the application configuration.
 type Config struct {
-	Environment   string              `yaml:"environment"`
-	Host          string              `yaml:"host"`
-	Port          uint16              `yaml:"port"`
-	Redis         *string             `yaml:"redis"`
-	Cache         ConfigCache         `yaml:"cache"`
-	AccessControl ConfigAccessControl `yaml:"access_control"`
+	Environment string      `yaml:"environment"`
+	Host        string      `yaml:"host"`
+	Port        uint16      `yaml:"port"`
+	MongoDB     *string     `yaml:"mongodb"`
+	Redis       *string     `yaml:"redis"`
+	Cache       ConfigCache `yaml:"cache"`
 }
 
 // ConfigCache represents the caching durations of various responses.
@@ -42,12 +42,6 @@ type ConfigCache struct {
 	JavaStatusDuration    time.Duration `yaml:"java_status_duration"`
 	BedrockStatusDuration time.Duration `yaml:"bedrock_status_duration"`
 	IconDuration          time.Duration `yaml:"icon_duration"`
-}
-
-// ConfigAccessControl is the configuration for the CORS headers
-type ConfigAccessControl struct {
-	Enable         bool     `yaml:"enable"`
-	AllowedOrigins []string `yaml:"allowed_origins"`
 }
 
 // ReadFile reads the configuration from the given file and overrides values using environment variables.
@@ -97,6 +91,10 @@ func (c *Config) overrideWithEnvVars() error {
 
 	if value := os.Getenv("REDIS_URL"); value != "" {
 		c.Redis = &value
+	}
+
+	if value := os.Getenv("MONGO_URL"); value != "" {
+		c.MongoDB = &value
 	}
 
 	return nil

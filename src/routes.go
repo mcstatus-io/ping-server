@@ -13,8 +13,9 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/favicon"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
-	"github.com/mcstatus-io/mcutil/v3"
-	"github.com/mcstatus-io/mcutil/v3/options"
+	"github.com/mcstatus-io/mcutil/v4/options"
+	"github.com/mcstatus-io/mcutil/v4/util"
+	"github.com/mcstatus-io/mcutil/v4/vote"
 )
 
 func init() {
@@ -26,15 +27,13 @@ func init() {
 		Data: assets.Favicon,
 	}))
 
-	if config.AccessControl.Enable {
+	if config.Environment == "development" {
 		app.Use(cors.New(cors.Config{
-			AllowOrigins:  strings.Join(config.AccessControl.AllowedOrigins, ","),
+			AllowOrigins:  "*",
 			AllowMethods:  "HEAD,OPTIONS,GET,POST",
 			ExposeHeaders: "X-Cache-Hit,X-Cache-Time-Remaining",
 		}))
-	}
 
-	if config.Environment == "development" {
 		app.Use(logger.New(logger.Config{
 			Format:     "${time} ${ip}:${port} -> ${status}: ${method} ${path} (${latency})\n",
 			TimeFormat: "2006/01/02 15:04:05",
@@ -56,23 +55,31 @@ func PingHandler(ctx *fiber.Ctx) error {
 
 // JavaStatusHandler returns the status of the Java edition Minecraft server specified in the address parameter.
 func JavaStatusHandler(ctx *fiber.Ctx) error {
+	address := strings.ToLower(ctx.Params("address"))
+
 	opts, err := GetStatusOptions(ctx)
 
 	if err != nil {
 		return err
 	}
 
-	host, port, err := ParseAddress(ctx.Params("address"), 25565)
-
-	if err != nil {
+	if _, _, err := util.ParseAddress(address); err != nil {
 		return ctx.Status(http.StatusBadRequest).SendString("Invalid address value")
 	}
 
-	if err = r.Increment(fmt.Sprintf("java-hits:%s-%d", host, port)); err != nil {
+	authorized, err := Authenticate(ctx)
+
+	// This check should work for both scenarios, because nil should be returned if the user
+	// is unauthorized, and err will be nil in that case.
+	if err != nil || !authorized {
 		return err
 	}
 
-	response, expiresAt, err := GetJavaStatus(host, port, opts)
+	if err = r.Increment(fmt.Sprintf("java-hits:%s", address)); err != nil {
+		return err
+	}
+
+	response, expiresAt, err := GetJavaStatus(address, opts)
 
 	if err != nil {
 		return err
@@ -89,23 +96,23 @@ func JavaStatusHandler(ctx *fiber.Ctx) error {
 
 // BedrockStatusHandler returns the status of the Bedrock edition Minecraft server specified in the address parameter.
 func BedrockStatusHandler(ctx *fiber.Ctx) error {
+	address := strings.ToLower(ctx.Params("address"))
+
 	opts, err := GetStatusOptions(ctx)
 
 	if err != nil {
 		return err
 	}
 
-	host, port, err := ParseAddress(ctx.Params("address"), 19132)
-
-	if err != nil {
+	if _, _, err := util.ParseAddress(address); err != nil {
 		return ctx.Status(http.StatusBadRequest).SendString("Invalid address value")
 	}
 
-	if err = r.Increment(fmt.Sprintf("bedrock-hits:%s-%d", host, port)); err != nil {
+	if err = r.Increment(fmt.Sprintf("bedrock-hits:%s", address)); err != nil {
 		return err
 	}
 
-	response, expiresAt, err := GetBedrockStatus(host, port, opts)
+	response, expiresAt, err := GetBedrockStatus(address, opts)
 
 	if err != nil {
 		return err
@@ -122,19 +129,19 @@ func BedrockStatusHandler(ctx *fiber.Ctx) error {
 
 // IconHandler returns the server icon for the specified Java edition Minecraft server.
 func IconHandler(ctx *fiber.Ctx) error {
+	address := strings.ToLower(ctx.Params("address"))
+
 	opts, err := GetStatusOptions(ctx)
 
 	if err != nil {
 		return err
 	}
 
-	host, port, err := ParseAddress(ctx.Params("address"), 25565)
-
-	if err != nil {
+	if _, _, err := util.ParseAddress(address); err != nil {
 		return ctx.Status(http.StatusBadRequest).SendString("Invalid address value")
 	}
 
-	icon, expiresAt, err := GetServerIcon(host, port, opts)
+	icon, expiresAt, err := GetServerIcon(address, opts)
 
 	if err != nil {
 		return err
@@ -166,9 +173,9 @@ func SendVoteHandler(ctx *fiber.Ctx) error {
 
 	defer cancel()
 
-	if err = mcutil.SendVote(c, opts.Host, opts.Port, options.Vote{
-		Token:       opts.Token,
+	if err = vote.SendVote(c, opts.Host, opts.Port, options.Vote{
 		PublicKey:   opts.PublicKey,
+		Token:       opts.Token,
 		ServiceName: opts.ServiceName,
 		Username:    opts.Username,
 		IPAddress:   opts.IPAddress,

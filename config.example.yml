@@ -1,6 +1,7 @@
 environment: development
 host: 0.0.0.0
 port: 3001
+mongodb: ${MONGO_URL} # Use an environment variable to define the Redis URL
 redis: ${REDIS_URL} # Use an environment variable to define the Redis URL
 cache:
   enable_locks: true
