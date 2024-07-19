@@ -42,8 +42,8 @@ github.com/mattn/go-isatty v0.0.20 h1:xfD0iDuEKnDkl03q4limB+vH+GxLEtL/jb4xVJSWWE
 github.com/mattn/go-isatty v0.0.20/go.mod h1:W+V8PltTTMOvKvAeJH7IuucS94S2C6jfK/D7dTCTo3Y=
 github.com/mattn/go-runewidth v0.0.15 h1:UNAjwbU9l54TA3KzvqLGxwWjHmMgBUVhBiTjelZgg3U=
 github.com/mattn/go-runewidth v0.0.15/go.mod h1:Jdepj2loyihRzMpdS35Xk/zdY8IAYHsh153qUoGf23w=
-github.com/mcstatus-io/mcutil/v4 v4.0.0-20240718180705-427b3bcbde17 h1:gdlFoHcepuGydv0yE29hrpdxIarTm0Z+8taA4QMndNw=
-github.com/mcstatus-io/mcutil/v4 v4.0.0-20240718180705-427b3bcbde17/go.mod h1:yC91WInI1U2GAMFWgpPgsAULPVS2o+4JCZbiiWhHwxM=
+github.com/mcstatus-io/mcutil/v4 v4.0.0-20240719034021-32d6524c0a5a h1:BnQPuCQvDabddAqVBjJ0US8TjI8/AKe//KkYGmZ75iM=
+github.com/mcstatus-io/mcutil/v4 v4.0.0-20240719034021-32d6524c0a5a/go.mod h1:yC91WInI1U2GAMFWgpPgsAULPVS2o+4JCZbiiWhHwxM=
 github.com/montanaflynn/stats v0.7.1 h1:etflOAAHORrCC44V+aR6Ftzort912ZU+YLiSTuV8eaE=
 github.com/montanaflynn/stats v0.7.1/go.mod h1:etXPPgVO6n31NxCd9KQUMvCM+ve0ruNzt6R8Bnaayow=
 github.com/redis/go-redis/v9 v9.5.4 h1:vOFYDKKVgrI5u++QvnMT7DksSMYg7Aw/Np4vLJLKLwY=
