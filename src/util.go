@@ -270,9 +270,10 @@ func GetInstanceID() (uint16, error) {
 }
 
 // GetCacheKey generates a unique key used for caching status results in Redis.
-func GetCacheKey(host string, opts *StatusOptions) string {
+func GetCacheKey(hostname string, port uint16, opts *StatusOptions) string {
 	values := &url.Values{}
-	values.Set("host", host)
+	values.Set("hostname", hostname)
+	values.Set("port", strconv.FormatUint(uint64(port), 10))
 
 	if opts != nil {
 		values.Set("query", strconv.FormatBool(opts.Query))
