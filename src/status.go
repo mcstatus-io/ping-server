@@ -126,8 +126,8 @@ type SRVRecord struct {
 }
 
 // GetJavaStatus returns the status response of a Java Edition server, either using cache or fetching a fresh status.
-func GetJavaStatus(host string, opts *StatusOptions) (*JavaStatusResponse, time.Duration, error) {
-	cacheKey := GetCacheKey(host, opts)
+func GetJavaStatus(hostname string, port uint16, opts *StatusOptions) (*JavaStatusResponse, time.Duration, error) {
+	cacheKey := GetCacheKey(hostname, port, opts)
 
 	// Wait for any other processes to finish fetching the status of this server
 	if config.Cache.EnableLocks {
@@ -156,7 +156,7 @@ func GetJavaStatus(host string, opts *StatusOptions) (*JavaStatusResponse, time.
 
 	// Fetch a fresh status from the server itself
 	{
-		response, err := FetchJavaStatus(host, opts)
+		response, err := FetchJavaStatus(hostname, port, opts)
 
 		if err != nil {
 			return nil, 0, err
@@ -177,8 +177,8 @@ func GetJavaStatus(host string, opts *StatusOptions) (*JavaStatusResponse, time.
 }
 
 // GetBedrockStatus returns the status response of a Bedrock Edition server, either using cache or fetching a fresh status.
-func GetBedrockStatus(host string, opts *StatusOptions) (*BedrockStatusResponse, time.Duration, error) {
-	cacheKey := GetCacheKey(host, nil)
+func GetBedrockStatus(hostname string, port uint16, opts *StatusOptions) (*BedrockStatusResponse, time.Duration, error) {
+	cacheKey := GetCacheKey(hostname, port, nil)
 
 	// Wait for any other processes to finish fetching the status of this server
 	if config.Cache.EnableLocks {
@@ -207,7 +207,7 @@ func GetBedrockStatus(host string, opts *StatusOptions) (*BedrockStatusResponse,
 
 	// Fetch a fresh status from the server itself
 	{
-		response, err := FetchBedrockStatus(host, opts)
+		response, err := FetchBedrockStatus(hostname, port, opts)
 
 		if err != nil {
 			return nil, 0, err
@@ -228,8 +228,8 @@ func GetBedrockStatus(host string, opts *StatusOptions) (*BedrockStatusResponse,
 }
 
 // GetServerIcon returns the icon image of a Java Edition server, either using cache or fetching a fresh image.
-func GetServerIcon(host string, opts *StatusOptions) ([]byte, time.Duration, error) {
-	cacheKey := GetCacheKey(host, nil)
+func GetServerIcon(hostname string, port uint16, opts *StatusOptions) ([]byte, time.Duration, error) {
+	cacheKey := GetCacheKey(hostname, port, nil)
 
 	// Fetch the cached icon if it exists
 	{
@@ -254,7 +254,7 @@ func GetServerIcon(host string, opts *StatusOptions) ([]byte, time.Duration, err
 
 		defer cancel()
 
-		status, err := status.Modern(ctx, host)
+		status, err := status.Modern(ctx, hostname, port)
 
 		if err == nil && status.Favicon != nil && strings.HasPrefix(*status.Favicon, "data:image/png;base64,") {
 			data, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(*status.Favicon, "data:image/png;base64,"))
@@ -278,11 +278,11 @@ func GetServerIcon(host string, opts *StatusOptions) ([]byte, time.Duration, err
 }
 
 // FetchJavaStatus fetches fresh information about a Java Edition Minecraft server.
-func FetchJavaStatus(host string, opts *StatusOptions) (*JavaStatusResponse, error) {
+func FetchJavaStatus(hostname string, port uint16, opts *StatusOptions) (*JavaStatusResponse, error) {
 	var (
 		err                error
 		srvRecord          *net.SRV
-		resolvedHost       string = host
+		resolvedHostname   string = hostname
 		ipAddress          *string
 		statusResult       *response.StatusModern
 		legacyStatusResult *response.StatusLegacy
@@ -301,16 +301,16 @@ func FetchJavaStatus(host string, opts *StatusOptions) (*JavaStatusResponse, err
 
 	// Lookup the SRV record
 	{
-		srvRecord, err = util.LookupSRV(host)
+		srvRecord, err = util.LookupSRV(hostname)
 
 		if err == nil && srvRecord != nil {
-			resolvedHost = strings.Trim(srvRecord.Target, ".")
+			resolvedHostname = strings.Trim(srvRecord.Target, ".")
 		}
 	}
 
 	// Resolve the connection hostname to an IP address
 	{
-		addr, err := net.ResolveIPAddr("ip", resolvedHost)
+		addr, err := net.ResolveIPAddr("ip", resolvedHostname)
 
 		if err == nil && addr != nil {
 			ipAddress = PointerOf(addr.IP.String())
@@ -328,11 +328,11 @@ func FetchJavaStatus(host string, opts *StatusOptions) (*JavaStatusResponse, err
 	// Retrieve the post-netty rewrite Java Edition status (Minecraft 1.8+)
 	{
 		go func() {
-			statusResult, _ = status.Modern(statusContext, host, options.StatusModern{
+			statusResult, _ = status.Modern(statusContext, hostname, port, options.StatusModern{
 				EnableSRV:       true,
 				Timeout:         opts.Timeout - time.Millisecond*100,
-				ProtocolVersion: 47,
-				Ping:            false,
+				ProtocolVersion: -1,
+				Ping:            true,
 			})
 
 			wg.Done()
@@ -352,10 +352,10 @@ func FetchJavaStatus(host string, opts *StatusOptions) (*JavaStatusResponse, err
 	// Retrieve the pre-netty rewrite Java Edition status (Minecraft 1.7 and below)
 	{
 		go func() {
-			legacyStatusResult, _ = status.Legacy(legacyContext, host, options.StatusLegacy{
+			legacyStatusResult, _ = status.Legacy(legacyContext, hostname, port, options.StatusLegacy{
 				EnableSRV:       true,
 				Timeout:         opts.Timeout - time.Millisecond*100,
-				ProtocolVersion: 47,
+				ProtocolVersion: -1,
 			})
 
 			wg.Done()
@@ -371,7 +371,7 @@ func FetchJavaStatus(host string, opts *StatusOptions) (*JavaStatusResponse, err
 	// Retrieve the query information (if it is available)
 	if opts.Query {
 		go func() {
-			queryResult, _ = query.Full(queryContext, host, options.Query{
+			queryResult, _ = query.Full(queryContext, hostname, port, options.Query{
 				Timeout: opts.Timeout - time.Millisecond*100,
 			})
 
@@ -381,11 +381,11 @@ func FetchJavaStatus(host string, opts *StatusOptions) (*JavaStatusResponse, err
 
 	wg.Wait()
 
-	return BuildJavaResponse(host, statusResult, legacyStatusResult, queryResult, srvRecord, ipAddress)
+	return BuildJavaResponse(hostname, port, statusResult, legacyStatusResult, queryResult, srvRecord, ipAddress)
 }
 
 // FetchBedrockStatus fetches a fresh status of a Bedrock Edition server.
-func FetchBedrockStatus(host string, opts *StatusOptions) (*BedrockStatusResponse, error) {
+func FetchBedrockStatus(hostname string, port uint16, opts *StatusOptions) (*BedrockStatusResponse, error) {
 	var (
 		ipAddress *string
 		result    *response.StatusBedrock
@@ -393,7 +393,7 @@ func FetchBedrockStatus(host string, opts *StatusOptions) (*BedrockStatusRespons
 
 	// Resolve the connection hostname to an IP address
 	{
-		ipAddr, err := net.ResolveIPAddr("ip", host)
+		ipAddr, err := net.ResolveIPAddr("ip", hostname)
 
 		if err == nil && ipAddr != nil {
 			ipAddress = PointerOf(ipAddr.IP.String())
@@ -406,31 +406,21 @@ func FetchBedrockStatus(host string, opts *StatusOptions) (*BedrockStatusRespons
 
 		defer cancel()
 
-		result, _ = status.Bedrock(ctx, host)
+		result, _ = status.Bedrock(ctx, hostname, port)
 	}
 
-	return BuildBedrockResponse(host, result, ipAddress)
+	return BuildBedrockResponse(hostname, port, result, ipAddress)
 }
 
 // BuildJavaResponse builds the response data from the status and query information.
-func BuildJavaResponse(host string, status *response.StatusModern, legacyStatus *response.StatusLegacy, query *response.QueryFull, srvRecord *net.SRV, ipAddress *string) (result *JavaStatusResponse, err error) {
-	hostname, port, err := util.ParseAddress(host)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if port == nil {
-		port = PointerOf(uint16(util.DefaultJavaPort))
-	}
-
+func BuildJavaResponse(hostname string, port uint16, status *response.StatusModern, legacyStatus *response.StatusLegacy, query *response.QueryFull, srvRecord *net.SRV, ipAddress *string) (result *JavaStatusResponse, err error) {
 	result = &JavaStatusResponse{
 		BaseStatus: BaseStatus{
 			Online:      false,
 			Host:        hostname,
-			Port:        *port,
+			Port:        port,
 			IPAddress:   ipAddress,
-			EULABlocked: IsBlockedAddress(host),
+			EULABlocked: IsBlockedAddress(hostname),
 			RetrievedAt: time.Now().UnixMilli(),
 			ExpiresAt:   time.Now().Add(config.Cache.JavaStatusDuration).UnixMilli(),
 		},
@@ -620,24 +610,14 @@ func BuildJavaResponse(host string, status *response.StatusModern, legacyStatus 
 }
 
 // BuildBedrockResponse builds the response data from the status information.
-func BuildBedrockResponse(host string, status *response.StatusBedrock, ipAddress *string) (result *BedrockStatusResponse, err error) {
-	hostname, port, err := util.ParseAddress(host)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if port == nil {
-		port = PointerOf(uint16(util.DefaultBedrockPort))
-	}
-
+func BuildBedrockResponse(hostname string, port uint16, status *response.StatusBedrock, ipAddress *string) (result *BedrockStatusResponse, err error) {
 	result = &BedrockStatusResponse{
 		BaseStatus: BaseStatus{
 			Online:      false,
 			Host:        hostname,
-			Port:        *port,
+			Port:        port,
 			IPAddress:   ipAddress,
-			EULABlocked: IsBlockedAddress(host),
+			EULABlocked: IsBlockedAddress(hostname),
 			RetrievedAt: time.Now().UnixMilli(),
 			ExpiresAt:   time.Now().Add(config.Cache.BedrockStatusDuration).UnixMilli(),
 		},

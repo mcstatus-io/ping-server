@@ -55,15 +55,15 @@ func PingHandler(ctx *fiber.Ctx) error {
 
 // JavaStatusHandler returns the status of the Java edition Minecraft server specified in the address parameter.
 func JavaStatusHandler(ctx *fiber.Ctx) error {
-	address := strings.ToLower(ctx.Params("address"))
-
 	opts, err := GetStatusOptions(ctx)
 
 	if err != nil {
 		return err
 	}
 
-	if _, _, err := util.ParseAddress(address); err != nil {
+	hostname, port, err := ParseAddress(strings.ToLower(ctx.Params("address")), util.DefaultJavaPort)
+
+	if err != nil {
 		return ctx.Status(http.StatusBadRequest).SendString("Invalid address value")
 	}
 
@@ -75,11 +75,11 @@ func JavaStatusHandler(ctx *fiber.Ctx) error {
 		return err
 	}
 
-	if err = r.Increment(fmt.Sprintf("java-hits:%s", address)); err != nil {
+	if err = r.Increment(fmt.Sprintf("java-hits:%s", fmt.Sprintf("%s:%d", hostname, port))); err != nil {
 		return err
 	}
 
-	response, expiresAt, err := GetJavaStatus(address, opts)
+	response, expiresAt, err := GetJavaStatus(hostname, port, opts)
 
 	if err != nil {
 		return err
@@ -96,23 +96,23 @@ func JavaStatusHandler(ctx *fiber.Ctx) error {
 
 // BedrockStatusHandler returns the status of the Bedrock edition Minecraft server specified in the address parameter.
 func BedrockStatusHandler(ctx *fiber.Ctx) error {
-	address := strings.ToLower(ctx.Params("address"))
-
 	opts, err := GetStatusOptions(ctx)
 
 	if err != nil {
 		return err
 	}
 
-	if _, _, err := util.ParseAddress(address); err != nil {
+	hostname, port, err := ParseAddress(strings.ToLower(ctx.Params("address")), util.DefaultBedrockPort)
+
+	if err != nil {
 		return ctx.Status(http.StatusBadRequest).SendString("Invalid address value")
 	}
 
-	if err = r.Increment(fmt.Sprintf("bedrock-hits:%s", address)); err != nil {
+	if err = r.Increment(fmt.Sprintf("bedrock-hits:%s", fmt.Sprintf("%s:%d", hostname, port))); err != nil {
 		return err
 	}
 
-	response, expiresAt, err := GetBedrockStatus(address, opts)
+	response, expiresAt, err := GetBedrockStatus(hostname, port, opts)
 
 	if err != nil {
 		return err
@@ -129,19 +129,19 @@ func BedrockStatusHandler(ctx *fiber.Ctx) error {
 
 // IconHandler returns the server icon for the specified Java edition Minecraft server.
 func IconHandler(ctx *fiber.Ctx) error {
-	address := strings.ToLower(ctx.Params("address"))
-
 	opts, err := GetStatusOptions(ctx)
 
 	if err != nil {
 		return err
 	}
 
-	if _, _, err := util.ParseAddress(address); err != nil {
+	hostname, port, err := ParseAddress(strings.ToLower(ctx.Params("address")), util.DefaultJavaPort)
+
+	if err != nil {
 		return ctx.Status(http.StatusBadRequest).SendString("Invalid address value")
 	}
 
-	icon, expiresAt, err := GetServerIcon(address, opts)
+	icon, expiresAt, err := GetServerIcon(hostname, port, opts)
 
 	if err != nil {
 		return err
