@@ -25,7 +25,7 @@ import (
 
 var (
 	blockedServers *MutexArray[string] = nil
-	hostRegEx      *regexp.Regexp      = regexp.MustCompile(`^[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+(:\d{1,5})?$`)
+	hostRegEx      *regexp.Regexp      = regexp.MustCompile(`^[A-Za-z0-9-_]+(\.[A-Za-z0-9-_]+)+(:\d{1,5})?$`)
 	ipAddressRegEx *regexp.Regexp      = regexp.MustCompile(`^\d{1,3}(\.\d{1,3}){3}$`)
 )
 
