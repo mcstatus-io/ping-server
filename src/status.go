@@ -331,7 +331,7 @@ func FetchJavaStatus(hostname string, port uint16, opts *StatusOptions) (*JavaSt
 			statusResult, _ = status.Modern(statusContext, hostname, port, options.StatusModern{
 				EnableSRV:       true,
 				Timeout:         opts.Timeout - time.Millisecond*100,
-				ProtocolVersion: -1,
+				ProtocolVersion: 47,
 				Ping:            true,
 			})
 
