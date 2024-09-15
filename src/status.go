@@ -332,7 +332,7 @@ func FetchJavaStatus(hostname string, port uint16, opts *StatusOptions) (*JavaSt
 				EnableSRV:       true,
 				Timeout:         opts.Timeout - time.Millisecond*100,
 				ProtocolVersion: 47,
-				Ping:            true,
+				Ping:            false,
 			})
 
 			wg.Done()
