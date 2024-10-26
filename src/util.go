@@ -45,8 +45,9 @@ type VoteOptions struct {
 
 // StatusOptions is the options provided as query parameters to the status route.
 type StatusOptions struct {
-	Query   bool
-	Timeout time.Duration
+	Query       bool
+	Timeout     time.Duration
+	BypassCache bool
 }
 
 // MutexArray is a thread-safe array for storing and retrieving values.
@@ -249,6 +250,11 @@ func GetStatusOptions(ctx *fiber.Ctx) (*StatusOptions, error) {
 	// Timeout
 	{
 		result.Timeout = time.Duration(math.Max(float64(time.Second)*ctx.QueryFloat("timeout", 5.0), float64(time.Millisecond*500)))
+	}
+
+	// Bypass Cache
+	{
+		result.BypassCache = Contains(config.Cache.BypassTokens, ctx.Get("Authorization"))
 	}
 
 	return result, nil

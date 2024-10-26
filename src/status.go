@@ -138,7 +138,7 @@ func GetJavaStatus(hostname string, port uint16, opts *StatusOptions) (*JavaStat
 	}
 
 	// Fetch the cached status if it exists
-	{
+	if !opts.BypassCache {
 		cache, ttl, err := r.Get(fmt.Sprintf("java:%s", cacheKey))
 
 		if err != nil {
@@ -189,7 +189,7 @@ func GetBedrockStatus(hostname string, port uint16, opts *StatusOptions) (*Bedro
 	}
 
 	// Fetch the cached status if it exists
-	{
+	if !opts.BypassCache {
 		cache, ttl, err := r.Get(fmt.Sprintf("bedrock:%s", cacheKey))
 
 		if err != nil {
@@ -232,7 +232,7 @@ func GetServerIcon(hostname string, port uint16, opts *StatusOptions) ([]byte, t
 	cacheKey := GetCacheKey(hostname, port, nil)
 
 	// Fetch the cached icon if it exists
-	{
+	if !opts.BypassCache {
 		cache, ttl, err := r.Get(fmt.Sprintf("icon:%s", cacheKey))
 
 		if err != nil {

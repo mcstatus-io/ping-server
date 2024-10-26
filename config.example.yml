@@ -8,7 +8,4 @@ cache:
   java_status_duration: 1m
   bedrock_status_duration: 1m
   icon_duration: 24h
-access_control:
-  enable: true
-  allowed_origins:
-    - '*'
+  bypass_tokens:

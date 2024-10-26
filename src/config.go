@@ -22,6 +22,7 @@ var (
 			JavaStatusDuration:    time.Minute,
 			BedrockStatusDuration: time.Minute,
 			IconDuration:          time.Minute * 15,
+			BypassTokens:          []string{},
 		},
 	}
 )
@@ -42,6 +43,7 @@ type ConfigCache struct {
 	JavaStatusDuration    time.Duration `yaml:"java_status_duration"`
 	BedrockStatusDuration time.Duration `yaml:"bedrock_status_duration"`
 	IconDuration          time.Duration `yaml:"icon_duration"`
+	BypassTokens          []string      `yaml:"bypass_tokens"`
 }
 
 // ReadFile reads the configuration from the given file and overrides values using environment variables.
